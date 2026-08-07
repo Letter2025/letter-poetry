@@ -112,8 +112,11 @@ async function workersAiGenerate(opts: GenerateOpts): Promise<LlmResult> {
           { role: "user", content: opts.user },
         ],
         max_tokens: 4096,
-      })) as { response?: string } | undefined;
-      const content = (res?.response ?? "").trim();
+      })) as
+        | { response?: string; choices?: { message?: { content?: string } }[] }
+        | undefined;
+      // gpt-oss-20b 返回 OpenAI 兼容格式 choices[0].message.content；原生 Workers AI 模型返回 response
+      const content = (res?.choices?.[0]?.message?.content ?? res?.response ?? "").trim();
       if (!content) throw new Error("workers-ai empty response");
       return { content, provider: `workers-ai:${WORKERS_AI_MODEL}` };
     } catch (e) {
