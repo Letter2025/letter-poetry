@@ -11,7 +11,7 @@ const OUT = path.join(ROOT, "public", "data");
 if (!fs.existsSync(SRC)) {
   const meta = path.join(OUT, "collections-meta.json");
   const gen = path.join(ROOT, "lib", "generated", "mengxue.json");
-  if (!fs.existsSync(idx) || !fs.existsSync(gen)) {
+  if (!fs.existsSync(meta) || !fs.existsSync(gen)) {
     console.error("[build-data] 缺少数据源目录，且没有已提交的生成数据。");
     process.exit(1);
   }
