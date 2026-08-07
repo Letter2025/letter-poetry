@@ -51,6 +51,12 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 - **服务端数据**：详情/搜索走 `lib/db.ts`（`env.DB`），**不要**把全量诗集 JSON 重新打进 bundle（3MB 压缩上限）。
 - 新增数据源/修正数据：改 `scripts/build-data.mjs` → `npm run build-data` → 导入 D1（注意配额）→ 更新 seed 产物与 collections-meta。
 
+### OG 分享卡片图
+
+- `app/og/[id]/route.tsx`：satori（JSX→SVG）+ @resvg/resvg-wasm（静态 wasm 导入→PNG）动态渲染每首诗卡片；详情页 og:image 指向 `/og/{id}`。
+- 字体：Noto Sans SC ttf（satori 不支持 woff2）运行时加载 + 模块缓存。
+- 记住：Workers 禁止动态编译 WASM，resvg 必须 `?module` 静态导入；不要用 @vercel/og（其 resvg 运行时加载 wasm 在 Workers 失效）。
+
 ### 缓存策略（CDN 边缘缓存，Cache API）
 
 - Cloudflare **默认不缓存 Worker 响应**，需用 **Cache API**（`caches.default`）显式缓存页面。

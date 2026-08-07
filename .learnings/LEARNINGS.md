@@ -23,3 +23,8 @@
 - vinext 支持 `import { env } from "cloudflare:workers"` 在 server component / route handler 用 D1；binding 写在 vite.config.ts cloudflare plugin config，自动进 dist/server/wrangler.json。
 - 动态页用 `export const dynamic = "force-dynamic"` 避免 build 时执行 D1 查询。
 - 免费版 bundle 压缩 3MB：数据必须移出 bundle；客户端组件 import 服务端模块用 `import type` 隔离。
+## OG-2026-08-07（动态分享卡片图）
+- Cloudflare Workers 禁止动态编译/实例化任意 WASM bytes：@vercel/og 的 resvg 运行时加载失败（返回 200 空 body / 500 空 body）。正解：`import wasm from "x.wasm?module"` 静态导入（wrangler 预编译）+ `initWasm(wasmModule)`。
+- satori 字体解析基于 opentype.js，**不支持 woff2**（报 Unsupported OpenType signature wOF2），必须 ttf/otf。
+- 中文 ttf 来源：`@expo-google-fonts/noto-sans-sc`（NotoSansSC_400Regular.ttf，8.5MB，jsdelivr CDN）；运行时加载 + 模块级缓存 + 重试。
+- 本方案 bundle gzip 0.84MB（免费 3MB 内）；OG 图带 Cache-Control 1 天。
