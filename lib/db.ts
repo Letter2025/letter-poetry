@@ -51,6 +51,20 @@ export async function getAuthorPoems(name: string, page = 1, size = 100): Promis
   return { total: cnt?.n ?? 0, page, size, items: items.results ?? [] };
 }
 
+// [LETTER-POETRY-PLAN-005] sitemap：诗数 + 分页 id 列表
+export async function getPoemCount(): Promise<number> {
+  const cnt = await env.DB.prepare("SELECT COUNT(*) AS n FROM poems").first<{ n: number }>();
+  return cnt?.n ?? 0;
+}
+
+export async function getPoemIdsPage(page: number, size = 10000): Promise<string[]> {
+  const offset = Math.max(0, (page - 1) * size);
+  const rows = await env.DB.prepare("SELECT id FROM poems ORDER BY id LIMIT ? OFFSET ?")
+    .bind(size, offset)
+    .all<{ id: string }>();
+  return (rows.results ?? []).map((r) => r.id);
+}
+
 export async function getRandomPoemRow(): Promise<PoemRow | null> {
   const cnt = await env.DB.prepare("SELECT COUNT(*) AS n FROM poems").first<{ n: number }>();
   const total = cnt?.n ?? 0;

@@ -9,7 +9,7 @@ interface ExecutionContext {
 // [LETTER-POETRY-PLAN-003#1] 页面边缘缓存：Cloudflare 默认不缓存 Worker 响应，需用 Cache API 显式缓存。
 // 仅缓存页面 HTML（非 RSC 请求）；API 由 route handler 自控（no-store/短缓存）。
 const PAGE_CC = "public, max-age=3600, s-maxage=86400";
-const PAGE_PREFIXES = ["/poem/", "/collections/", "/authors", "/mengxue", "/poems", "/favorites"];
+const PAGE_PREFIXES = ["/poem/", "/collections/", "/authors", "/mengxue", "/poems", "/favorites", "/sitemap"];
 
 function isPage(pathname: string): boolean {
   return pathname === "/" || PAGE_PREFIXES.some((p) => pathname.startsWith(p));
