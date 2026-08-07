@@ -51,12 +51,12 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 - **服务端数据**：详情/搜索走 `lib/db.ts`（`env.DB`），**不要**把全量诗集 JSON 重新打进 bundle（3MB 压缩上限）。
 - 新增数据源/修正数据：改 `scripts/build-data.mjs` → `npm run build-data` → 导入 D1（注意配额）→ 更新 seed 产物与 collections-meta。
 
-### 缓存策略（CDN 边缘缓存）
+### 缓存策略（CDN 边缘缓存，Cache API）
 
-- 页面（`/`、`/poem/*`、`/collections/*`、`/authors*`、`/mengxue*`、`/poems`、`/favorites`）：`Cache-Control: public, max-age=3600, s-maxage=86400`（CDN 缓存 1 天）。
-- `/api/poems`、`/api/poem/[id]`、`/api/poem/daily`：`public, max-age=60, s-maxage=300`（短缓存）。
-- `/api/poem/random`：`no-store`（必须每次随机）。
-- 实现于 `worker/index.ts`（仅 GET + 200 设置头）。**不要用 KV 做页面缓存**：KV 免费写 1000/天，无法预热 4.7 万首。
+- Cloudflare **默认不缓存 Worker 响应**，需用 **Cache API**（`caches.default`）显式缓存页面。
+- `worker/index.ts`：仅缓存**页面 HTML**（`/`、`/poem/*`、`/collections/*`、`/authors*`、`/mengxue*`、`/poems`、`/favorites`）且**非 RSC 请求**（Accept 不含 `text/x-component`），TTL 1 天；命中后不进 Worker、不查 D1（线上 `CF-Cache-Status: HIT` 已验证）。
+- API（`/api/*`）由 route handler 自控：列表/搜索/详情/每日 `no-store`，随机 `no-store`。
+- **不要用 KV 做页面缓存**：KV 免费写 1000/天，无法预热 4.7 万首。
 - 数据导入后旧缓存最长保留 1 天（TTL 自动过期）；如需立即生效可 purge。
 
 ### 部署流程
