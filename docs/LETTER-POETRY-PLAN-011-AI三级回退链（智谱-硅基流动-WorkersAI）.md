@@ -1,6 +1,6 @@
 # LETTER-POETRY-PLAN-011-AI三级回退链（智谱-硅基流动-WorkersAI）
 
-> 计划状态：进行中 ｜ 创建日期：2026-08-07 ｜ 目标：把 letter-poetry 的 /api/ai 从「单智谱 key」升级为 letter-ask 同款三级回退链（智谱 GLM → SiliconFlow 免费对话模型 → Cloudflare Workers AI 兜底），提升免费模型限流/波动下的稳定性
+> 计划状态：✅ 全部完成 ｜ 创建日期：2026-08-07 ｜ 完成日期：2026-08-07 ｜ 目标：把 letter-poetry 的 /api/ai 从「单智谱 key」升级为 letter-ask 同款三级回退链（智谱 GLM → SiliconFlow 免费对话模型 → Cloudflare Workers AI 兜底），提升免费模型限流/波动下的稳定性
 
 ## 一、背景
 
@@ -26,16 +26,16 @@ letter-poetry 详情页 AI（PLAN-010）当前只调智谱单一模型（glm-4.7
 | 文件 | 说明 | 状态 |
 |---|---|---|
 | `docs/LETTER-POETRY-PLAN-011-AI三级回退链（智谱-硅基流动-WorkersAI）.md` | 本计划 | ✅ |
-| `lib/llm.ts` | 三级回退链（zhipu/siliconflow/workers-ai） | ⏳ |
+| `lib/llm.ts` | 三级回退链（zhipu/siliconflow/workers-ai） | ✅ |
 
 ### 修改
 | 文件 | 说明 | 状态 |
 |---|---|---|
-| `app/api/ai/route.ts` | 改用 lib/llm.ts，返回 provider | ⏳ |
-| `vite.config.ts` | 加 AI binding | ⏳ |
-| `lib/db.ts` | env 声明加 key 与 AI | ⏳ |
-| `components/ai-panel.tsx` | 提示文案去「智谱」字样 | ⏳ |
-| `AGENTS.md` / `.learnings` | 文档 | ⏳ |
+| `app/api/ai/route.ts` | 改用 lib/llm.ts，返回 provider | ✅ |
+| `vite.config.ts` | 加 AI binding | ✅ |
+| `lib/db.ts` | env 声明加 key 与 AI | ✅ |
+| `components/ai-panel.tsx` | 提示文案去「智谱」字样 | ✅ |
+| `AGENTS.md` / `.learnings` | 文档 | ✅ |
 
 ## 四、实施顺序
 
@@ -56,3 +56,6 @@ letter-poetry 详情页 AI（PLAN-010）当前只调智谱单一模型（glm-4.7
 | 日期 | 内容 |
 |---|---|
 | 2026-08-07 | 创建计划；参照 letter-ask src/rag.ts（generateOnce 三级回退）移植 |
+| 2026-08-07 | 完成：lib/llm.ts 三级回退（智谱模型池→硅基流动→Workers AI 兜底）+ /api/ai 接入 + AI binding + env 声明；验证：智谱链路 provider=zhipu:glm-4.7-flash ✅；临时置无效智谱 key 实测回退 workers-ai:@cf/openai/gpt-oss-20b（1255 字）✅ 恢复后智谱正常 ✅ |
+| 2026-08-07 | 坑：gpt-oss-20b 经 env.AI.run 返回 OpenAI 兼容格式 choices[0].message.content（非 letter-ask 假设的 response），已兼容双格式；secret 变更传播约 60s |
+| 2026-08-07 | 待办：SILICONFLOW_API_KEY 未配置（用户提供 key 后 wrangler secret bulk 设置，即启用硅基流动级） |
