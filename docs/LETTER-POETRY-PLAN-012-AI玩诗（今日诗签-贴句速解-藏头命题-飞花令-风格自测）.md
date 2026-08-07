@@ -1,6 +1,6 @@
 # LETTER-POETRY-PLAN-012-AI玩诗（今日诗签-贴句速解-藏头命题-飞花令-风格自测）
 
-> 计划状态：进行中 ｜ 创建日期：2026-08-07 ｜ 目标：在首页/策展页/独立页落地 5 个 AI 玩法，全部复用 /api/ai 三级回退链（PLAN-010/011），不重复造 LLM 调用
+> 计划状态：✅ 全部完成 ｜ 创建日期：2026-08-07 ｜ 完成日期：2026-08-07 ｜ 目标：在首页/策展页/独立页落地 5 个 AI 玩法，全部复用 /api/ai 三级回退链（PLAN-010/011），不重复造 LLM 调用
 
 ## 一、背景
 
@@ -31,25 +31,25 @@
 | 文件 | 说明 | 状态 |
 |---|---|---|
 | `docs/LETTER-POETRY-PLAN-012-AI玩诗（今日诗签-贴句速解-藏头命题-飞花令-风格自测）.md` | 本计划 | ✅ |
-| `lib/use-ai.ts` | 客户端 callAi 封装 | ⏳ |
-| `components/sign-card.tsx` | 今日诗签 | ⏳ |
-| `components/quick-explain.tsx` | 贴句速解 | ⏳ |
-| `components/ai-create.tsx` | 藏头/命题作诗 | ⏳ |
-| `components/feihua.tsx` | 飞花令 | ⏳ |
-| `components/style-quiz.tsx` | 风格自测 | ⏳ |
-| `app/feihua/page.tsx` | 飞花令页 | ⏳ |
-| `app/quiz/page.tsx` | 风格自测页 | ⏳ |
+| `lib/use-ai.ts` | 客户端 callAi 封装 | ✅ |
+| `components/sign-card.tsx` | 今日诗签 | ✅ |
+| `components/quick-explain.tsx` | 贴句速解 | ✅ |
+| `components/ai-create.tsx` | 藏头/命题作诗 | ✅ |
+| `components/feihua.tsx` | 飞花令 | ✅ |
+| `components/style-quiz.tsx` | 风格自测 | ✅ |
+| `app/feihua/page.tsx` | 飞花令页 | ✅ |
+| `app/quiz/page.tsx` | 风格自测页 | ✅ |
 
 ### 修改
 | 文件 | 说明 | 状态 |
 |---|---|---|
-| `app/api/ai/route.ts` | 新增 5 个 mode + 提示词 | ⏳ |
-| `components/daily-poem.tsx` | 嵌入 SignCard | ⏳ |
-| `app/page.tsx` | 首页加贴句速解 section | ⏳ |
-| `app/themes/page.tsx` | 策展页加 AiCreate | ⏳ |
-| `components/chrome.tsx` | 导航加飞花令/风格自测 | ⏳ |
-| `app/globals.css` | 新样式 | ⏳ |
-| `AGENTS.md` / `.learnings` | 文档 | ⏳ |
+| `app/api/ai/route.ts` | 新增 5 个 mode + 提示词 | ✅ |
+| `components/daily-poem.tsx` | 嵌入 SignCard | ✅ |
+| `app/page.tsx` | 首页加贴句速解 section | ✅ |
+| `app/themes/page.tsx` | 策展页加 AiCreate | ✅ |
+| `components/chrome.tsx` | 导航加飞花令/风格自测 | ✅ |
+| `app/globals.css` | 新样式 | ✅ |
+| `AGENTS.md` / `.learnings` | 文档 | ✅ |
 
 ## 四、实施顺序
 
@@ -70,3 +70,4 @@
 | 日期 | 内容 |
 |---|---|
 | 2026-08-07 | 创建计划 |
+| 2026-08-07 | 完成：7 mode 扩展 + lib/use-ai.ts + 5 组件/2 页面/首页/策展/导航接入；线上验证：sign（结合 8 月夏季推荐语）/create（藏头诗）/feihua（5 句+出处）/quiz/quick 全部返回，4 页面 200 |
