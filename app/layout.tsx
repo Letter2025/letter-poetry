@@ -27,6 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="zh-CN">
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script defer src="https://letter-analytics.zhouyujun-work.workers.dev/a.js"></script>
         {children}
       </body>
     </html>
