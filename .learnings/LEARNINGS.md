@@ -22,6 +22,7 @@
 2026-08-07 | 智谱 glm-4.7-flash 思考模式 | 默认启用 reasoning，max_tokens=1024 会被思考内容占满 → finish_reason=length 且 content 为空（线上曾返回「AI 返回为空」）；必须传 thinking:{type:"disabled"} 才直接输出 content，且更省 token（实测同题 624 vs 1522+）
 2026-08-07 | 三级回退链移植 | letter-ask src/rag.ts 的 generateOnce 模式（模型池 + 指数退避 ≤2 + Provider 逐级回退 zhipu→siliconflow→workers-ai）可直接移植到其他站；Workers AI 兜底需在 vite.config.ts 加 ai:{binding:"AI"}（vite plugin config 即 wrangler Unstable_Config 子集，部署配置自动生成）；SILICONFLOW_API_KEY 缺省时回退链自动跳过该级
 2026-08-07 | Workers AI gpt-oss-20b 响应格式 | env.AI.run(@cf/openai/gpt-oss-20b) 返回 OpenAI 兼容格式 {choices:[{message:{content}}]}，不是 {response}（letter-ask 的 res.response 假设会拿空）；解析需 choices[0].message.content 优先、response 兜底；REST 实测 success=True、约 6 neurons/次（10K/天免费）
+2026-08-07 | 硅基流动链路启用 | SILICONFLOW_API_KEY 已配置（wrangler secret bulk）；实测回退链 zhipu 失效 → siliconflow:THUDM/GLM-Z1-9B-0414 正常返回 1862 字；GLM-Z1 思考型首 token 慢（5-6s），max_tokens 已给 4096；智谱多分支并发易限流时硅基流动是关键备选
 ## ARCHITECTURE-2026-08-07（架构升级）
 - D1 rows_written 免费 10 万/天，按「行 + 索引」计费：普通 INSERT 1 行 + 主键索引 1 = 2/首；多列索引 4/首；FTS5 ≈5/首 → 中文搜索不能建 FTS，用 LIKE（D1 端执行不占 Worker CPU，3 万行 2ms）。
 - D1 不支持 SQL BEGIN/COMMIT（用 API 事务）；单条语句长度 <54KB（按 40KB 字节分批）。

@@ -58,4 +58,4 @@ letter-poetry 详情页 AI（PLAN-010）当前只调智谱单一模型（glm-4.7
 | 2026-08-07 | 创建计划；参照 letter-ask src/rag.ts（generateOnce 三级回退）移植 |
 | 2026-08-07 | 完成：lib/llm.ts 三级回退（智谱模型池→硅基流动→Workers AI 兜底）+ /api/ai 接入 + AI binding + env 声明；验证：智谱链路 provider=zhipu:glm-4.7-flash ✅；临时置无效智谱 key 实测回退 workers-ai:@cf/openai/gpt-oss-20b（1255 字）✅ 恢复后智谱正常 ✅ |
 | 2026-08-07 | 坑：gpt-oss-20b 经 env.AI.run 返回 OpenAI 兼容格式 choices[0].message.content（非 letter-ask 假设的 response），已兼容双格式；secret 变更传播约 60s |
-| 2026-08-07 | 待办：SILICONFLOW_API_KEY 未配置（用户提供 key 后 wrangler secret bulk 设置，即启用硅基流动级） |
+| 2026-08-07 | SILICONFLOW_API_KEY 已配置（wrangler secret bulk）；实测 zhipu 失效 → siliconflow:THUDM/GLM-Z1-9B-0414 正常（1862 字），恢复后 zhipu 正常；三级回退链全部链路验证完毕 |
