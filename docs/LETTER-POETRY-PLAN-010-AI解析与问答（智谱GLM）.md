@@ -1,6 +1,6 @@
 # LETTER-POETRY-PLAN-010-AI解析与问答（智谱GLM）
 
-> 计划状态：进行中 ｜ 创建日期：2026-08-07 ｜ 目标：详情页接入智谱 GLM-4.5-Flash / GLM-4.7-Flash 免费模型，提供「AI 解析」与「向 AI 询问」两个能力；API Key 只存 Cloudflare Secret，不进 git/前端
+> 计划状态：✅ 全部完成 ｜ 创建日期：2026-08-07 ｜ 完成日期：2026-08-07 ｜ 目标：详情页接入智谱 glm-4.7-flash 免费模型，提供「AI 解析」与「向 AI 询问」两个能力；API Key 只存 Cloudflare Secret，不进 git/前端
 
 ## 一、背景
 
@@ -27,16 +27,16 @@
 | 文件 | 说明 | 状态 |
 |---|---|---|
 | `docs/LETTER-POETRY-PLAN-010-AI解析与问答（智谱GLM）.md` | 本计划 | ✅ |
-| `app/api/ai/route.ts` | AI 代理 API（POST，服务端调智谱） | ⏳ |
-| `components/ai-panel.tsx` | 详情页 AI 面板（解析 + 询问） | ⏳ |
+| `app/api/ai/route.ts` | AI 代理 API（POST，服务端调智谱） | ✅ |
+| `components/ai-panel.tsx` | 详情页 AI 面板（解析 + 询问） | ✅ |
 
 ### 修改
 | 文件 | 说明 | 状态 |
 |---|---|---|
-| `app/poem/[id]/page.tsx` | 详情页挂载 AiPanel | ⏳ |
-| `lib/db.ts` | `cloudflare:workers` env 声明加 `ZHIPU_API_KEY` | ⏳ |
-| `app/globals.css` | AI 面板样式 | ⏳ |
-| `AGENTS.md` / `.learnings` | 文档 | ⏳ |
+| `app/poem/[id]/page.tsx` | 详情页挂载 AiPanel | ✅ |
+| `lib/db.ts` | `cloudflare:workers` env 声明加 `ZHIPU_API_KEY` | ✅ |
+| `app/globals.css` | AI 面板样式 | ✅ |
+| `AGENTS.md` / `.learnings` | 文档 | ✅ |
 
 ## 四、实施顺序
 
@@ -57,4 +57,5 @@
 | 日期 | 内容 |
 |---|---|
 | 2026-08-07 | 创建计划；智谱 key 实测有效，glm-4.7-flash 返回正常 |
+| 2026-08-07 | 完成：/api/ai（explain/ask）+ AiPanel + 详情页挂载 + Secret（bulk 重建）；线上踩坑：glm-4.7-flash 默认思考会吃满 max_tokens 致 content 为空 → 加 thinking:{type:disabled}；验证：explain/ask 均正常返回，详情页 SSR 含面板，主域 200 |
 | 2026-08-07 | 待办：首页/策展页 AI 附加能力候选（今日诗签 / 飞花令 / 命题藏头诗 / 风格自测），用户确认后另立 PLAN |
