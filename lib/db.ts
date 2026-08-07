@@ -89,14 +89,27 @@ export type SearchResult = {
   total: number;
   page: number;
   size: number;
-  items: PoemRow[];
+  items: SearchItem[];
 };
+
+export type SearchItem = PoemRow & { hit?: string };
+
+// [LETTER-POETRY-PLAN-006] 命中行：text 命中时返回含关键词的行（最多 2 行）；标题/作者命中不额外返回
+function computeHit(row: PoemRow, q: string): string | undefined {
+  const needle = q.trim();
+  if (!needle) return undefined;
+  if (row.title.includes(needle) || row.author.includes(needle)) return undefined;
+  const hitLines = row.text.split("\n").filter((l) => l.includes(needle)).slice(0, 2);
+  return hitLines.length > 0 ? hitLines.join("  ") : undefined;
+}
 
 export async function searchPoems(opts: SearchOpts): Promise<SearchResult> {
   const page = Math.max(1, opts.page ?? 1);
   const size = Math.min(100, Math.max(1, opts.size ?? 30));
   const where: string[] = [];
   const params: unknown[] = [];
+  const q = opts.q?.trim() ?? "";
+  const like = `%${q}%`;
 
   if (opts.c) {
     where.push("collection = ?");
@@ -110,8 +123,7 @@ export async function searchPoems(opts: SearchOpts): Promise<SearchResult> {
     where.push("author = ?");
     params.push(opts.author);
   }
-  if (opts.q && opts.q.trim()) {
-    const like = `%${opts.q.trim()}%`;
+  if (q) {
     where.push("(title LIKE ? OR author LIKE ? OR text LIKE ?)");
     params.push(like, like, like);
   }
@@ -120,11 +132,21 @@ export async function searchPoems(opts: SearchOpts): Promise<SearchResult> {
   const cnt = await env.DB.prepare(`SELECT COUNT(*) AS n FROM poems ${whereSql}`)
     .bind(...params)
     .first<{ n: number }>();
-  const items = await env.DB.prepare(
-    `SELECT ${COLS} FROM poems ${whereSql} ORDER BY id LIMIT ? OFFSET ?`
+
+  // [LETTER-POETRY-PLAN-006] 相关性排序：标题前缀 > 标题包含 > 作者 > 正文
+  const orderParams: unknown[] = q ? [`${q}%`, like, like] : [];
+  const orderSql = q
+    ? "ORDER BY CASE WHEN title LIKE ? THEN 0 WHEN title LIKE ? THEN 1 WHEN author LIKE ? THEN 2 ELSE 3 END, id"
+    : "ORDER BY id";
+  const rows = await env.DB.prepare(
+    `SELECT ${COLS} FROM poems ${whereSql} ${orderSql} LIMIT ? OFFSET ?`
   )
-    .bind(...params, size, (page - 1) * size)
+    .bind(...params, ...orderParams, size, (page - 1) * size)
     .all<PoemRow>();
 
-  return { total: cnt?.n ?? 0, page, size, items: items.results ?? [] };
+  const items: SearchItem[] = (rows.results ?? []).map((r) =>
+    q ? { ...r, hit: computeHit(r, q) } : r
+  );
+
+  return { total: cnt?.n ?? 0, page, size, items };
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { Highlight } from "@/components/highlight";
 import { useCallback, useEffect, useState } from "react";
 
-type Row = { id: string; title: string; author: string; text: string };
+type Row = { id: string; title: string; author: string; text: string; hit?: string };
 type ApiResult = { total: number; page: number; size: number; items: Row[] };
 
 const PAGE_SIZE = 50;
@@ -64,7 +65,7 @@ export function CollectionBrowser({ collectionKey, name }: { collectionKey: stri
           <Link key={p.id} href={`/poem/${p.id}`} className="poem-row">
             <div className="poem-row-main">
               <h3>{p.title || "（无题）"}</h3>
-              <p className="poem-row-first">{p.text.split("\n")[0] ?? ""}</p>
+              <p className="poem-row-first">{p.hit ? <Highlight text={p.hit} q={q} /> : (p.text.split("\n")[0] ?? "")}</p>
             </div>
             <div className="poem-row-meta">
               <span>{p.author || "佚名"}</span>

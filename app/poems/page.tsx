@@ -4,9 +4,10 @@ import Link from "next/link";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
+import { Highlight } from "@/components/highlight";
 import type { CollectionMeta, PoetryIndex } from "@/lib/types";
 
-type ResultItem = { id: string; title: string; author: string; collection: string; text: string };
+type ResultItem = { id: string; title: string; author: string; collection: string; text: string; hit?: string };
 type ApiResult = { total: number; page: number; size: number; items: ResultItem[] };
 
 const PAGE_SIZE = 50;
@@ -119,7 +120,7 @@ function PoemsClient() {
                   <Link key={p.id} href={`/poem/${p.id}`} className="poem-row">
                     <div className="poem-row-main">
                       <h3>{p.title || "（无题）"}</h3>
-                      <p className="poem-row-first">{p.text.split("\n")[0] ?? ""}</p>
+                      <p className="poem-row-first">{p.hit ? <Highlight text={p.hit} q={q} /> : (p.text.split("\n")[0] ?? "")}</p>
                     </div>
                     <div className="poem-row-meta">
                       <span>{p.author || "佚名"}</span>

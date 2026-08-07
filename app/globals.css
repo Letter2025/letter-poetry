@@ -221,3 +221,5 @@ header.shell .header { max-width:1240px; margin:0 auto; padding:0 28px; }
 .author-card p { margin:0; color:var(--muted); font-size:12px; }
 @media (max-width:900px){ .author-grid{grid-template-columns:repeat(3,1fr)} }
 @media (max-width:780px){ .author-grid{grid-template-columns:repeat(2,1fr)} }
+/* === Letter Poetry search highlight === */
+mark { background: color-mix(in srgb, var(--blue) 22%, transparent); color: var(--ink); padding: 0 2px; border-radius: 2px; }
