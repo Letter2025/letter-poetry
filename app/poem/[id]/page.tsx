@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       description: desc,
       type: "article",
       locale: "zh_CN",
-      images: [{ url: "/og.png", width: 1200, height: 630, alt: title }],
+      images: [{ url: `/og/${params.id}`, width: 1200, height: 630, alt: title }],
     },
   };
 }
