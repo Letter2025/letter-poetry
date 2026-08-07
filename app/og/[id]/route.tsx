@@ -12,16 +12,24 @@ declare module "*.wasm?module" {
 
 export const dynamic = "force-dynamic";
 
+// satori 仅支持 ttf/otf（不支持 woff2），用静态 weight 的 ttf
 const FONT_URL =
-  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.1.0/files/noto-sans-sc-chinese-simplified-400-normal.woff2";
+  "https://cdn.jsdelivr.net/npm/@expo-google-fonts/noto-sans-sc@0.2.3/NotoSansSC_400Regular.ttf";
 
 let fontPromise: Promise<ArrayBuffer | null> | null = null;
-function loadFont(): Promise<ArrayBuffer | null> {
-  if (!fontPromise) {
-    fontPromise = fetch(FONT_URL)
-      .then((r) => (r.ok ? r.arrayBuffer() : null))
-      .catch(() => null);
+async function fetchFont(): Promise<ArrayBuffer | null> {
+  for (let i = 0; i < 2; i++) {
+    try {
+      const r = await fetch(FONT_URL);
+      if (r.ok) return await r.arrayBuffer();
+    } catch {
+      /* retry */
+    }
   }
+  return null;
+}
+function loadFont(): Promise<ArrayBuffer | null> {
+  if (!fontPromise) fontPromise = fetchFont();
   return fontPromise;
 }
 
