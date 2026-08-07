@@ -212,3 +212,12 @@ header.shell .header { max-width:1240px; margin:0 auto; padding:0 28px; }
   .poem-nav .button:first-child,.poem-nav .button:last-child{flex:1 1 100%}
   .detail-meta{flex-direction:column;align-items:flex-start;gap:4px}
 }
+
+/* === Letter Poetry authors === */
+.author-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+.author-card { border:1px solid var(--rule); background:var(--panel); padding:14px 16px; transition:all .18s; }
+.author-card:hover { border-color:var(--blue); background:var(--bluewash); transform:translateY(-2px); }
+.author-card h3 { margin:0 0 4px; font-size:15px; font-family:"Songti SC","Noto Serif SC","SimSun",serif; }
+.author-card p { margin:0; color:var(--muted); font-size:12px; }
+@media (max-width:900px){ .author-grid{grid-template-columns:repeat(3,1fr)} }
+@media (max-width:780px){ .author-grid{grid-template-columns:repeat(2,1fr)} }

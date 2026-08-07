@@ -34,4 +34,11 @@ export type MengxueDoc = {
   title: string;
   author: string;
   paragraphs: string[];
+  /** 分卷信息（古文观止按卷分组，如「卷一・周文」），其余蒙学无此字段 */
+  section?: string;
+};
+
+export type Author = {
+  name: string;
+  ids: string[];
 };

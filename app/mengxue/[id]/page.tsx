@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PoemText } from "@/components/poem-text";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
 import { getMengxue, getMengxueDoc } from "@/lib/poetry";
 
@@ -16,7 +17,14 @@ export function generateMetadata({ params }: { params: { id: string } }): Metada
   return {
     title: `${doc.title} · ${doc.author}`,
     description: doc.paragraphs[0]?.slice(0, 80) ?? doc.title,
-    openGraph: { title: `${doc.title} · ${doc.author}`, description: "蒙学经典全文", type: "article", locale: "zh_CN" },
+    openGraph: {
+      title: `${doc.title} · ${doc.author}`,
+      description: "蒙学经典全文",
+      type: "article",
+      locale: "zh_CN",
+      // [LETTER-POETRY-PLAN-001#6] 详情页分享卡片图
+      images: [{ url: "/og.png", width: 1200, height: 630, alt: `${doc.title} · ${doc.author}` }],
+    },
   };
 }
 
@@ -36,11 +44,7 @@ export default function MengxueDetailPage({ params }: { params: { id: string } }
           </div>
           <h1 className="poem-title">{doc.title}</h1>
           <div className="poem-byline"><span>{doc.author}</span></div>
-          <div className="mengxue-text">
-            {doc.paragraphs.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </div>
+          <PoemText lines={doc.paragraphs} className="mengxue-text" />
           <div className="poem-nav">
             <Link className="button" href="/mengxue">← 返回蒙学</Link>
           </div>

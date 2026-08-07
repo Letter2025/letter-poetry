@@ -44,6 +44,42 @@ function stripDynasty(a) {
     .replace(/[（(](唐|宋|元|明|清|五代|先秦|汉|三国|晋|南北朝|隋|辽|金|民国)[）)]/g, "");
 }
 
+
+// [LETTER-POETRY-PLAN-001#1] Asia/Shanghai 本地日期（YYYY-MM-DD），避免 UTC 日期偏差
+function localDate() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+function xmlEscape(s) {
+  return (s ?? "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+function poemFirstLine(id) {
+  const key = id.split("-")[0];
+  const list = colData[key] || [];
+  const item = list.find((x) => x.id === id);
+  return item ? item.p[0] || "" : "";
+}
+// [LETTER-POETRY-PLAN-001#1] 静态 RSS（每日一诗 + 每部选集一篇 + 蒙学各篇）
+function buildRss(index, mengxueDocs) {
+  const site = "https://poetry.myletter.top";
+  const ymd = localDate().replace(/-/g, "");
+  const dailyMeta = index.poems[parseInt(ymd, 10) % index.poems.length];
+  const entries = [];
+  entries.push({ title: "每日一诗：《" + dailyMeta.t + "》· " + (dailyMeta.a || "佚名"), link: site + "/poem/" + dailyMeta.id, desc: poemFirstLine(dailyMeta.id) });
+  for (const c of index.collections) {
+    const list = colData[c.key] || [];
+    if (list[0]) entries.push({ title: "《" + list[0].t + "》· " + (list[0].a || "佚名") + "（" + c.name + "）", link: site + "/poem/" + list[0].id, desc: list[0].p[0] || "" });
+  }
+  const seenMeng = new Set();
+  for (const d of mengxueDocs) {
+    const group = d.id.startsWith("guwen-") ? "guwen" : d.id;
+    if (seenMeng.has(group)) continue;
+    seenMeng.add(group);
+    entries.push({ title: "《" + d.title + "》· " + (d.author || "佚名") + "（蒙学）", link: site + "/mengxue/" + d.id, desc: (d.paragraphs[0] || "").slice(0, 60) });
+  }
+  const itemsXml = entries.map((e) => "<item><title>" + xmlEscape(e.title) + "</title><link>" + xmlEscape(e.link) + "</link><guid isPermaLink=\"true\">" + xmlEscape(e.link) + "</guid><description>" + xmlEscape(e.desc) + "</description></item>").join("\n");
+  return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\"><channel><title>Letter Poetry｜古典诗文档案</title><link>" + site + "</link><description>唐诗、宋词、诗经、楚辞与蒙学经典的在线诗文集</description><language>zh-CN</language><lastBuildDate>" + new Date().toUTCString() + "</lastBuildDate>" + itemsXml + "</channel></rss>";
+}
+
 const collectionsMeta = [];
 const poems = [];
 const colData = {};
@@ -232,9 +268,9 @@ function addCollection(key, name, short, dynasty, desc, rows) {
 // ---- 蒙学 ----
 {
   const mengxue = [];
-  const pushMeng = (id, title, author, paragraphs) => {
+  const pushMeng = (id, title, author, paragraphs, section = "") => {
     const p = (paragraphs || []).map(simp).filter(Boolean);
-    if (p.length) mengxue.push({ id, title, author, paragraphs: p });
+    if (p.length) mengxue.push({ id, title, author, paragraphs: p, ...(section ? { section } : {}) });
   };
 
   const szj = readJson("蒙学/sanzijing-new.json");
@@ -270,7 +306,7 @@ function addCollection(key, name, short, dynasty, desc, rows) {
     for (const art of vol.content || []) {
       gwSeq += 1;
       const author = stripDynasty(art.author || "");
-      pushMeng("guwen-" + String(gwSeq).padStart(3, "0"), simp(art.chapter), author || "佚名", art.paragraphs ? toLines(art.paragraphs).map(simp) : []);
+      pushMeng("guwen-" + String(gwSeq).padStart(3, "0"), simp(art.chapter), author || "佚名", art.paragraphs ? toLines(art.paragraphs).map(simp) : [], simp(vol.title || ""));
     }
   }
 
@@ -280,13 +316,36 @@ function addCollection(key, name, short, dynasty, desc, rows) {
 
 // ---- 写文件 ----
 const index = {
-  generatedAt: new Date().toISOString().slice(0, 10),
+  generatedAt: localDate(),
   total: poems.length,
   collections: collectionsMeta,
   poems,
 };
 
 fs.writeFileSync(path.join(OUT, "index.json"), JSON.stringify(index), "utf8");
+// [LETTER-POETRY-PLAN-001#1] 全文检索精简全集（单请求，替代 12 个 collection 并发拉取）
+const full = [];
+for (const [key, list] of Object.entries(colData)) {
+  for (const r of list) full.push({ id: r.id, t: r.t, a: r.a || "", c: key, p: r.p });
+}
+fs.writeFileSync(path.join(OUT, "full.json"), JSON.stringify(full), "utf8");
+console.log("full.json:", (fs.statSync(path.join(OUT, "full.json")).size / 1024).toFixed(1) + " KB");
+// [LETTER-POETRY-PLAN-001#1] 作者聚合（作者索引页用）
+const authorMap = new Map();
+for (const p of poems) {
+  const a = (p.a || "").trim();
+  if (!a) continue;
+  const e = authorMap.get(a) ?? { name: a, ids: [] };
+  e.ids.push(p.id);
+  authorMap.set(a, e);
+}
+const authors = [...authorMap.values()].sort((x, y) => x.name.localeCompare(y.name, "zh-Hans-CN"));
+fs.writeFileSync(path.join(OUT, "authors.json"), JSON.stringify(authors), "utf8");
+console.log("authors.json:", authors.length, "authors");
+// [LETTER-POETRY-PLAN-001#1] 静态 RSS（避免依赖 route handler）
+const mengxueDocsForRss = JSON.parse(fs.readFileSync(path.join(OUT, "mengxue.json"), "utf8"));
+fs.writeFileSync(path.join(ROOT, "public", "rss.xml"), buildRss(index, mengxueDocsForRss), "utf8");
+console.log("rss.xml: generated");
 for (const [key, list] of Object.entries(colData)) {
   fs.writeFileSync(path.join(COL_DIR, key + ".json"), JSON.stringify(list), "utf8");
 }
@@ -307,4 +366,5 @@ fs.writeFileSync(path.join(genDir, "index.json"), JSON.stringify(index), "utf8")
 fs.writeFileSync(path.join(genDir, "collections.json"), JSON.stringify(colData), "utf8");
 const mengxueForBundle = JSON.parse(fs.readFileSync(path.join(OUT, "mengxue.json"), "utf8"));
 fs.writeFileSync(path.join(genDir, "mengxue.json"), JSON.stringify(mengxueForBundle), "utf8");
+fs.writeFileSync(path.join(genDir, "authors.json"), JSON.stringify(authors), "utf8");
 console.log("generated lib/generated/*.json for bundle");

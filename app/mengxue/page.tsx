@@ -1,11 +1,24 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
 import { getMengxue } from "@/lib/poetry";
+import type { MengxueDoc } from "@/lib/types";
 
 export default function MengxuePage() {
   const docs = getMengxue();
   const classics = docs.filter((d) => !d.id.startsWith("guwen-"));
   const guwen = docs.filter((d) => d.id.startsWith("guwen-"));
+
+  // [LETTER-POETRY-PLAN-001#7] 古文观止按卷分组（数据源卷名如「卷一・周文」）
+  const groups = guwen.reduce<{ section: string; docs: MengxueDoc[] }[]>((acc, d) => {
+    const sec = d.section || "古文观止";
+    let g = acc.find((x) => x.section === sec);
+    if (!g) {
+      g = { section: sec, docs: [] };
+      acc.push(g);
+    }
+    g.docs.push(d);
+    return acc;
+  }, []);
 
   return (
     <>
@@ -47,20 +60,25 @@ export default function MengxuePage() {
               <h2 className="section-title">古文观止 · {guwen.length} 篇</h2>
             </div>
           </div>
-          <div className="poem-list">
-            {guwen.map((d) => (
-              <Link key={d.id} href={`/mengxue/${d.id}`} className="poem-row">
-                <div className="poem-row-main">
-                  <h3>{d.title}</h3>
-                  <p className="poem-row-first">{d.paragraphs[0]?.slice(0, 42) ?? ""}</p>
-                </div>
-                <div className="poem-row-meta">
-                  <span>{d.author}</span>
-                  <span className="terminal">古文观止</span>
-                </div>
-              </Link>
-            ))}
-          </div>
+          {groups.map((g) => (
+            <div key={g.section} style={{ marginBottom: 30 }}>
+              <div className="eyebrow" style={{ marginBottom: 12 }}><span className="blue">{"//"}</span> {g.section}</div>
+              <div className="poem-list">
+                {g.docs.map((d) => (
+                  <Link key={d.id} href={`/mengxue/${d.id}`} className="poem-row">
+                    <div className="poem-row-main">
+                      <h3>{d.title}</h3>
+                      <p className="poem-row-first">{d.paragraphs[0]?.slice(0, 42) ?? ""}</p>
+                    </div>
+                    <div className="poem-row-meta">
+                      <span>{d.author}</span>
+                      <span className="terminal">古文观止</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
         </section>
       </main>
       <SiteFooter />

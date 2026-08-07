@@ -16,37 +16,47 @@ Letter is the unified personal brand and the collective noun for this set of kno
 ## Features
 
 - **Daily poem & random** — a poem a day and one-click random reading.
-- **13 collections** — Tang Poems 300 (~320), Thousand Family Poems (~220), Song Ci 300 (280), Book of Songs (305), Chu Ci (65), Yuan Opera (1,200 selected), Huajian Ji (~500), Southern Tang rulers' ci (45), Nalan Xingde (~260), Cao Cao (26), Ink-wash Tang poems (176), Youmeng Ying (219), Mengxue primers (231).
-- **Full-text search** — by title, author or verse, falling back to full-text.
-- **Detail pages** — original text, notes, vernacular translation, prev/next navigation and copy-to-clipboard.
-- **Mengxue reading** — long-form primers (Three Character Classic, Hundred Family Surnames, Thousand Character Classic, Guwen Guanzhi…).
+- **12 collections + Mengxue** — Tang Poems 300 (320), Thousand Family Poems (219), Song Ci 300 (280), Book of Songs (305), Chu Ci (65), Yuan Opera (1,200 selected), Huajian Ji (497), Southern Tang rulers' ci (45), Nalan Xingde (257), Cao Cao (26), Ink-wash Tang poems (176), Youmeng Ying (219), plus a separate Mengxue module (231 primers).
+- **Full-text search** — by title, author or verse, falling back to full-text via a bundled single-file index.
+- **Detail pages** — original text, notes, vernacular translation, prev/next navigation, copy-to-clipboard.
+- **Favorites** — save poems to a local (browser) reading list at `/favorites`.
+- **Author index** — browse all 360+ poets and writers at `/authors`.
+- **Simplified / Traditional toggle** — switch the reading script without leaving the page.
+- **Mengxue reading** — long-form primers (Three Character Classic, Hundred Family Surnames, Thousand Character Classic, Guwen Guanzhi by volume…).
 - **Dark mode & responsive** — shared Letter design tokens.
-- **SEO** — per-poem pages, sitemap and JSON-LD structured data.
+- **SEO & sharing** — per-poem pages, sitemap, JSON-LD, Open Graph images, RSS feed and PWA manifest.
 
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router) + vinext, deployed as a Cloudflare Worker
-- **Data build:** `scripts/build-data.mjs` compiles raw JSON from [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) into a compact bundle
-- **Conversion:** `chinese-conv` (traditional → simplified)
+- **Data build:** `scripts/build-data.mjs` compiles raw JSON from [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) into a compact bundle (per-collection files, a single `full.json` search set, `authors.json`, static `rss.xml`)
+- **Conversion:** `chinese-conv` (traditional → simplified at build; simplified → traditional for the reader toggle)
 - **Runtime:** zero external API — all data ships inside the Worker bundle
-- **CI/CD:** GitHub Actions → `cloudflare/wrangler-action@v3`
+- **CI/CD:** GitHub Actions → `cloudflare/wrangler-action@v3`, with `npm test` on every deploy
 
 ## Directory Structure
 
 ```text
 app/
   page.tsx          # Home: daily poem, random, collections
-  poems/            # Poem list + detail
-  poem/  collections/  # Collection browsing
-  mengxue/          # Long-form primer reading
+  poems/            # Poem list + full-text search
+  poem/  collections/  # Detail & collection browsing
+  authors/          # Author index + per-author pages
+  mengxue/          # Long-form primer reading (grouped by volume)
+  favorites/        # Local reading list
   sitemap.ts  robots.ts  # SEO
   globals.css       # Letter design tokens
 components/
   daily-poem.tsx  collection-browser.tsx  poem-actions.tsx  chrome.tsx
-lib/                # Data loading / search helpers
+  poem-text.tsx  script-toggle.tsx  author-browser.tsx
+lib/                # Data loading / search helpers / script state
 scripts/
   build-data.mjs    # Compiles data from ../cf-poetry-data (or committed data)
-public/  worker/  build/
+tests/
+  rendered-html.test.mjs  # Data & artifact smoke tests (npm test)
+public/
+  data/  rss.xml  manifest.webmanifest  icon-512.png  …
+worker/  build/
 .github/workflows/deploy.yml  # CI deployment
 ```
 
@@ -74,10 +84,11 @@ npm run build-data   # compiles from ../cf-poetry-data; falls back to committed 
 npm run dev
 ```
 
-### Build
+### Build & test
 
 ```bash
 npm run build
+npm test
 ```
 
 ## Deployment (Cloudflare Workers)
@@ -85,12 +96,14 @@ npm run build
 GitHub Actions (`.github/workflows/deploy.yml`) runs on push to `main`:
 
 1. `npm ci` + `npm run build`
-2. `wrangler deploy --config dist/server/wrangler.json --name letter-poetry`
+2. `npm test`
+3. `wrangler deploy --config dist/server/wrangler.json --name letter-poetry`
 
 Manual equivalent:
 
 ```bash
 npm run build
+npm test
 npx wrangler deploy --config dist/server/wrangler.json --name letter-poetry
 ```
 

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ScriptToggle } from "@/components/script-toggle";
 
 const github = "https://github.com/Letter2025";
 const portal = "https://www.myletter.top";
 
 export function SiteHeader() {
   const [menu, setMenu] = useState(false);
-  const toggle = () => {
+  const toggleTheme = () => {
     const next = document.documentElement.dataset.theme !== "dark";
     document.documentElement.dataset.theme = next ? "dark" : "light";
     localStorage.setItem("theme", next ? "dark" : "light");
@@ -25,12 +26,15 @@ export function SiteHeader() {
         <nav className={`nav ${menu ? "open" : ""}`}>
           <Link href="/" onClick={close}>首页</Link>
           <Link href="/poems" onClick={close}>全部诗文</Link>
+          <Link href="/authors" onClick={close}>作者</Link>
           <Link href="/mengxue" onClick={close}>蒙学</Link>
+          <Link href="/favorites" onClick={close}>收藏</Link>
           <a href={portal} target="_blank" rel="noreferrer">门户 ↗</a>
           <a href={github} target="_blank" rel="noreferrer">GitHub ↗</a>
         </nav>
         <div className="nav-actions">
-          <button className="icon-button" aria-label="切换深色模式" onClick={toggle}>◐</button>
+          <ScriptToggle />
+          <button className="icon-button" aria-label="切换深色模式" onClick={toggleTheme}>◐</button>
           <a className="top-link" href={portal} target="_blank" rel="noreferrer">LETTER NETWORK ↗</a>
           <button className="menu-button" aria-label="打开导航" onClick={() => setMenu(!menu)}>☰</button>
         </div>

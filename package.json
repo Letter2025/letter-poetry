@@ -9,7 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "node --test tests/*.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "prebuild": "node scripts/build-data.mjs",
     "build-data": "node scripts/build-data.mjs"
@@ -43,5 +43,5 @@
     "wrangler": "4.92.0"
   },
   "type": "module",
-  "description": "Letter Poetry - ????????"
+  "description": "Letter Poetry · 古典诗文档案（唐诗宋词诗经楚辞元曲蒙学在线诗文集）"
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PoemActions } from "@/components/poem-actions";
+import { PoemText } from "@/components/poem-text";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
 import { getCollection, getCollections, getIndex, getPoem } from "@/lib/poetry";
 
@@ -15,10 +16,18 @@ export function generateMetadata({ params }: { params: { id: string } }): Metada
   const poem = getPoem(params.id);
   if (!poem) return { title: "未找到" };
   const firstLine = poem.p[0] ?? "";
+  const ogDesc = firstLine ? `${poem.a || "佚名"}《${poem.t}》：${firstLine}${poem.p[1] ? "，" + poem.p[1] : ""}` : `《${poem.t}》全文`;
   return {
     title: `${poem.t} · ${poem.a || "佚名"}`,
-    description: firstLine ? `${poem.a || "佚名"}《${poem.t}》：${firstLine}${poem.p[1] ? "，" + poem.p[1] : ""}` : `《${poem.t}》全文`,
-    openGraph: { title: `${poem.t} · ${poem.a || "佚名"}`, description: firstLine, type: "article", locale: "zh_CN" },
+    description: ogDesc,
+    openGraph: {
+      title: `${poem.t} · ${poem.a || "佚名"}`,
+      description: ogDesc,
+      type: "article",
+      locale: "zh_CN",
+      // [LETTER-POETRY-PLAN-001#6] 详情页分享卡片图
+      images: [{ url: "/og.png", width: 1200, height: 630, alt: `${poem.t} · ${poem.a || "佚名"}` }],
+    },
   };
 }
 
@@ -59,12 +68,8 @@ export default function PoemDetailPage({ params }: { params: { id: string } }) {
             {poem.s && <span>{poem.s}</span>}
             {poem.r && poem.r !== poem.t && <><span className="dot">·</span><span>词牌 {poem.r}</span></>}
           </div>
-          <div className="poem-text" lang="zh-Hant">
-            {poem.p.map((line, i) => (
-              <p key={i} className="verse-line">{line}</p>
-            ))}
-          </div>
-          <PoemActions text={poem.p.join("\n")} title={`${poem.t} · ${poem.a || "佚名"}`} />
+          <PoemText lines={poem.p} className="poem-text" lineClass="verse-line" />
+          <PoemActions id={poem.id} text={poem.p.join("\n")} title={`${poem.t} · ${poem.a || "佚名"}`} />
           {poem.tr && (
             <div className="poem-note">
               <div className="eyebrow"><span className="blue">{"//"}</span> 白话译文</div>

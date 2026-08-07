@@ -16,37 +16,47 @@ Letter 是统一个人品牌，也是这套知识资产的集合名词。诗歌�
 ## 功能特性
 
 - **每日一诗与随机** —— 每天一首，一键随机阅读。
-- **13 部选集** —— 唐诗三百首（~320）、千家诗（~220）、宋词三百首（280）、诗经（305）、楚辞（65）、元曲（精选 1200）、花间集（~500）、南唐二主词（45）、纳兰性德（~260）、曹操诗集（26）、水墨唐诗（176）、幽梦影（219）、蒙学（231）。
-- **全文检索** —— 按标题 / 作者 / 诗句，自动进入全文检索。
+- **12 部选集 + 蒙学** —— 唐诗三百首（320）、千家诗（219）、宋词三百首（280）、诗经（305）、楚辞（65）、元曲（精选 1200）、花间集（497）、南唐二主词（45）、纳兰性德（257）、曹操诗集（26）、水墨唐诗（176）、幽梦影（219）；另设独立蒙学模块（231 篇）。
+- **全文检索** —— 按标题 / 作者 / 诗句，无命中时自动进入全文检索（单文件精简索引，一次请求）。
 - **详情页** —— 正文、注释、白话译文、上一篇 / 下一篇、复制全文。
-- **蒙学长文阅读** —— 三字经、百家姓、千字文、古文观止等。
+- **收藏夹** —— 在 `/favorites` 保存本机阅读清单（localStorage）。
+- **作者索引** —— 在 `/authors` 浏览 360+ 位诗人与文人。
+- **繁简切换** —— 阅读正文可随时在简体 / 繁体之间切换。
+- **蒙学长文阅读** —— 三字经、百家姓、千字文、古文观止（按卷分组）等。
 - **深色模式与响应式** —— 共用 Letter 设计令牌。
-- **SEO** —— 每篇独立页面 + sitemap + JSON-LD。
+- **SEO 与分享** —— 每篇独立页面 + sitemap + JSON-LD + Open Graph 卡片图 + RSS + PWA Manifest。
 
 ## 技术栈
 
 - **框架：** Next.js 16（App Router）+ vinext，部署为 Cloudflare Worker
-- **数据构建：** `scripts/build-data.mjs` 将 [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) 原始 JSON 编译为精简数据
-- **转换：** `chinese-conv`（繁转简）
+- **数据构建：** `scripts/build-data.mjs` 将 [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) 原始 JSON 编译为精简数据（分选集文件、单文件 `full.json` 检索集、`authors.json`、静态 `rss.xml`）
+- **转换：** `chinese-conv`（构建期繁转简；阅读器繁简切换用简转繁）
 - **运行时：** 零外部 API —— 全部数据随 Worker bundle 打包
-- **CI/CD：** GitHub Actions → `cloudflare/wrangler-action@v3`
+- **CI/CD：** GitHub Actions → `cloudflare/wrangler-action@v3`，每次部署执行 `npm test`
 
 ## 目录结构
 
 ```text
 app/
   page.tsx          # 首页：每日一诗、随机、选集入口
-  poems/            # 诗文列表 + 详情
-  poem/  collections/  # 选集浏览
-  mengxue/          # 蒙学经典长文阅读
+  poems/            # 诗文列表 + 全文检索
+  poem/  collections/  # 详情与选集浏览
+  authors/          # 作者索引 + 作者作品页
+  mengxue/          # 蒙学经典长文阅读（按卷分组）
+  favorites/        # 本机收藏清单
   sitemap.ts  robots.ts  # SEO
   globals.css       # Letter 设计令牌
 components/
   daily-poem.tsx  collection-browser.tsx  poem-actions.tsx  chrome.tsx
-lib/                # 数据加载 / 检索工具
+  poem-text.tsx  script-toggle.tsx  author-browser.tsx
+lib/                # 数据加载 / 检索工具 / 繁简状态
 scripts/
   build-data.mjs    # 从 ../cf-poetry-data 编译数据（缺失时沿用已提交数据）
-public/  worker/  build/
+tests/
+  rendered-html.test.mjs  # 数据与产物冒烟测试（npm test）
+public/
+  data/  rss.xml  manifest.webmanifest  icon-512.png  …
+worker/  build/
 .github/workflows/deploy.yml  # CI 部署
 ```
 
@@ -74,10 +84,11 @@ npm run build-data   # 从 ../cf-poetry-data 编译；数据源缺失时沿用�
 npm run dev
 ```
 
-### 构建
+### 构建与测试
 
 ```bash
 npm run build
+npm test
 ```
 
 ## 部署（Cloudflare Workers）
@@ -85,12 +96,14 @@ npm run build
 GitHub Actions（`.github/workflows/deploy.yml`）在 push 到 `main` 时触发：
 
 1. `npm ci` + `npm run build`
-2. `wrangler deploy --config dist/server/wrangler.json --name letter-poetry`
+2. `npm test`
+3. `wrangler deploy --config dist/server/wrangler.json --name letter-poetry`
 
 手动等价命令：
 
 ```bash
 npm run build
+npm test
 npx wrangler deploy --config dist/server/wrangler.json --name letter-poetry
 ```
 

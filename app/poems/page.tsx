@@ -14,14 +14,10 @@ function getIndexData() {
   if (!indexPromise) indexPromise = fetch("/data/index.json").then((r) => r.json());
   return indexPromise;
 }
-async function getAllPoems(collections: CollectionMeta[]) {
+// [LETTER-POETRY-PLAN-001#5] 全文检索改拉构建期生成的 full.json（单请求精简全集，替代 12 个 collection 并发拉取）
+async function getAllPoems() {
   if (!allPromise) {
-    allPromise = (async () => {
-      const groups = await Promise.all(
-        collections.map((c) => fetch(`/data/collections/${c.key}.json`).then((r) => r.json()))
-      );
-      return groups.flat();
-    })();
+    allPromise = fetch("/data/full.json").then((r) => r.json());
   }
   return allPromise;
 }
@@ -92,7 +88,7 @@ function PoemsClient() {
     if (filtered && filtered.length > 0) return;
     let cancelled = false;
     setSearchingFull(true);
-    getAllPoems(index.collections)
+    getAllPoems()
       .then((all) => {
         if (cancelled) return;
         const needle = q.trim().toLowerCase();
