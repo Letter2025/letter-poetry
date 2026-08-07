@@ -33,3 +33,8 @@
 - 4.7 万首 → 5 页（第 5 页 7,629）；/sitemap/6 返回 404（超出）。
 - 替换旧 app/sitemap.ts 时，旧 /sitemap.xml 被 CDN 缓存（s-maxage 86400）约 1 天过渡；token 无 purge_cache 权限（zone 级受限），只能等 TTL 或换 URL。
 - robots.txt 是 Cloudflare Managed（含 Content-Signal），自定义部分（sitemap 指向）在文件尾部生效。
+## SEARCH-2026-08-07（搜索体验优化）
+- API 命中行：text 命中的诗返回 hit（含关键词的前 2 行）；title/author 命中不返回（列表已展示）。
+- 相关性排序 SQL：`ORDER BY CASE WHEN title LIKE 'q%' THEN 0 WHEN title LIKE '%q%' THEN 1 WHEN author LIKE '%q%' THEN 2 ELSE 3 END, id`。
+- 前端高亮：Highlight 组件（split + <mark>，非正则安全；React 自动转义）。
+- 经验：主域名 /api 可能命中 CDN 旧缓存（no-store 也偶发），判断新旧代码用 workers.dev 直连；客户端渲染的 mark 用 curl 看不到，需浏览器或 React renderToStaticMarkup 验证。

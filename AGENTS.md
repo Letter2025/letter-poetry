@@ -57,6 +57,12 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 - 字体：Noto Sans SC ttf（satori 不支持 woff2）运行时加载 + 模块缓存。
 - 记住：Workers 禁止动态编译 WASM，resvg 必须 `?module` 静态导入；不要用 @vercel/og（其 resvg 运行时加载 wasm 在 Workers 失效）。
 
+### 搜索
+
+- `lib/db.ts` searchPoems：相关性排序（标题前缀>标题>作者>正文）+ `hit` 命中行（text 命中返回前 2 行）。
+- 前端 `components/highlight.tsx`：`<mark>` 高亮（split/join 安全）。
+- 判断线上新旧代码用 workers.dev 直连（主域名可能命中 CDN 缓存）；客户端渲染内容 curl 看不到。
+
 ### sitemap
 
 - `/sitemap.xml`：sitemap index → `/sitemap-static.xml`（精选）+ `/sitemap/1..N`（详情分页，D1 每页 10,000 条）。
