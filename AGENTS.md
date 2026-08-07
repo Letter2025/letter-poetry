@@ -2,28 +2,27 @@
 
 ## 项目概览
 
-可检索、可细读、可收藏的在线诗文集（https://poetry.myletter.top）：**12 部选集 + 独立蒙学模块**、全文检索、每日一诗、作者索引、繁简切换、本机收藏夹。数据构建时打包，运行时零外部 API。
+可检索、可细读、可收藏的在线诗文集（https://poetry.myletter.top）：**全唐诗（一期 44 卷 44,020 首）+ 12 部选集 + 独立蒙学模块**，总量 47,000+ 篇。**架构：数据存 Cloudflare D1，服务端检索**；浏览器不再下载全库 JSON。
 
 ## 目录结构
 
 | 目录/文件 | 职责 |
 |---|---|
-| `app/page.tsx` | 首页：每日一诗、随机、选集入口 |
-| `app/poems/` | 诗文列表与全文检索（`full.json` 单请求） |
-| `app/collections/` `app/poem/` | 选集浏览与详情 |
-| `app/authors/` | 作者索引与作者作品页（`authors.json` 驱动） |
-| `app/mengxue/` | 蒙学经典长文阅读（古文观止按卷分组） |
-| `app/favorites/` | 本机收藏清单（localStorage） |
-| `components/daily-poem.tsx` 等 | 首页 / 选集 / 操作组件 |
-| `components/poem-text.tsx` `script-toggle.tsx` | 繁简切换与正文渲染（chinese-conv） |
-| `components/author-browser.tsx` | 作者索引搜索/分页 |
-| `scripts/build-data.mjs` | 数据编译（数据源 `../cf-poetry-data`；产出分选集 JSON、`full.json`、`authors.json`、`rss.xml`） |
-| `lib/` | 数据加载与检索、繁简脚本状态 |
-| `tests/rendered-html.test.mjs` | 数据与产物冒烟测试（`npm test`） |
-| `public/` | 静态资源（图标、`data/`、`manifest.webmanifest`、`rss.xml`） |
+| `app/page.tsx` | 首页：选集、统计、每日一诗 |
+| `app/poems/` | 检索与列表（`/api/poems` 服务端分页） |
+| `app/poem/` `app/collections/` | 详情（D1 动态渲染）与选集浏览 |
+| `app/authors/` | 作者索引（静态）与作者作品页（D1） |
+| `app/mengxue/` | 蒙学长文（构建期小数据） |
+| `app/favorites/` | 本机收藏（localStorage + API 批量取） |
+| `app/api/poems/route.ts` | 列表/检索 API（c/q/author/ids/page/size） |
+| `app/api/poem/[id]|daily|random` | 详情 / 每日一诗 / 随机 API |
+| `lib/db.ts` | **D1 访问层**（server component / route handler 用 `env.DB`） |
+| `lib/poetry.ts` | 构建期小元数据（选集/蒙学/作者） |
+| `scripts/build-data.mjs` | 数据编译：全唐诗/选集/蒙学 + D1 seed SQL 分片 + 静态元数据 |
+| `seed/` | D1 schema（0001_schema.sql）+ seed_01..08.sql（构建产物） |
+| `tests/rendered-html.test.mjs` | 数据/产物冒烟测试（`npm test`） |
 | `app/globals.css` | Letter 设计令牌 |
-| `worker/` | Cloudflare Worker 入口（vinext） |
-| `.github/workflows/deploy.yml` | CI 部署（build + test + deploy） |
+| `.github/workflows/deploy.yml` | CI 部署（build + test + deploy；**不含数据导入**，数据手动导入以避免 D1 写配额风险） |
 
 ## 开发规则
 
@@ -31,31 +30,37 @@
 
 ```bash
 npm install          # 安装依赖
-npm run build-data   # 重新编译数据（数据源缺失时沿用已提交数据）
+npm run build-data   # 编译数据（数据源缺失时沿用已提交产物）
 npm run dev          # 本地开发
-npm run build        # 构建（vinext build）
-npm test             # 数据/产物冒烟测试（node --test tests/*.mjs）
+npm run build        # 构建（vinext build；RSC 环境在 workerd 运行，支持 cloudflare:workers）
+npm test             # 冒烟测试（node --test tests/*.mjs）
 ```
+
+### 数据导入（重要）
+
+- D1 免费版 **rows_written 每日 10 万**（含索引，约 2 行/首；FTS5 约 5 行/首 → **不要建 FTS**）。
+- 全量 47,629 首 ≈ 9.5 万行写，**单日可完成但无余量**；分片 seed_01..08 每片约 6,000 首。
+- 若当日配额不足，分批跨天导入（UTC 00:00 重置）。
+- 导入命令见 README「部署」节；**CI 不自动导入**（避免重复部署耗尽配额），数据更新走手动流程。
 
 ### 代码 / UI 规范
 
 - **必须复用** `app/globals.css` 设计令牌（基准：`E:\aicode\web\letter-links\app\globals.css`），禁止自创配色。
 - 深色模式 `data-theme="dark"`；响应式断点 780px；尊重 `prefers-reduced-motion`；字体 Inter + Noto Sans SC。
-- 排版以「可细读」为先：正文、注释、白话译文分层清晰；每篇独立 URL + JSON-LD。
-- 新增 / 修正诗文数据：更新数据源或 `scripts/build-data.mjs` 产物，保持繁简转换（chinese-conv）一致。
-- 正文渲染一律走 `components/poem-text.tsx`（自动处理繁简与 lang 属性），不要直接写死 `lang="zh-Hant"`。
+- 正文渲染一律走 `components/poem-text.tsx`（繁简 + lang）；不要写死 `lang="zh-Hant"`。
+- **服务端数据**：详情/搜索走 `lib/db.ts`（`env.DB`），**不要**把全量诗集 JSON 重新打进 bundle（3MB 压缩上限）。
+- 新增数据源/修正数据：改 `scripts/build-data.mjs` → `npm run build-data` → 导入 D1（注意配额）→ 更新 seed 产物与 collections-meta。
 
 ### 部署流程
 
-1. push 到 `main` → GitHub Actions：`npm ci` + `npm run build` + `npm test`。
-2. `wrangler deploy --config dist/server/wrangler.json --name letter-poetry`（secrets：`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`）。
-3. 域名 poetry.myletter.top 的 DNS/路由在 Cloudflare 面板配置。
+1. 手动完成数据导入（见上）。
+2. push 到 `main` → GitHub Actions：`npm ci` + `npm run build` + `npm test` + `wrangler deploy --config dist/server/wrangler.json --name letter-poetry`。
+3. 域名 poetry.myletter.top 的 DNS/路由在 Cloudflare 面板配置；D1 binding（`DB`）在 `vite.config.ts`，部署配置自动生成到 `dist/server/wrangler.json`。
 
 ### 计划驱动开发
 
 - 功能开发 / 重构前，先在 `docs/` 创建 `{PROJECT}-PLAN-XXX-功能名称.md`（中文命名、编号递增）。
 - 代码注释标注：`[LETTER-POETRY-PLAN-编号#段号.子段号]`。
-- 计划结构：元信息 / 背景 / 分段方案 / 文件清单 / 实施顺序 / 风险与应对 / 变更记录。
 - 收尾：状态 `✅ 全部完成`；同步更新本文件目录结构；`.learnings/LEARNINGS.md` 记录。
 
 ### 协作注意事项

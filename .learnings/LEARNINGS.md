@@ -17,3 +17,9 @@
 2026-08-07 | vinext 产物结构 | dist/server/wrangler.json 是部署配置（CI --config 指向它）；public 静态资源复制到 dist/client；静态路由由运行时预渲染，构建日志中 ƒ Dynamic 不代表不可用
 2026-08-07 | 数据驱动页面 | 作者页/收藏页/全文检索均改为构建期生成数据（authors.json/full.json），避免运行时计算与多请求拉取
 2026-08-07 | PowerShell 中文传输 | @'...'@ | node - 会损坏中文（变 ?）；涉及中文的脚本一律 WriteAllText 写临时文件再执行
+## ARCHITECTURE-2026-08-07（架构升级）
+- D1 rows_written 免费 10 万/天，按「行 + 索引」计费：普通 INSERT 1 行 + 主键索引 1 = 2/首；多列索引 4/首；FTS5 ≈5/首 → 中文搜索不能建 FTS，用 LIKE（D1 端执行不占 Worker CPU，3 万行 2ms）。
+- D1 不支持 SQL BEGIN/COMMIT（用 API 事务）；单条语句长度 <54KB（按 40KB 字节分批）。
+- vinext 支持 `import { env } from "cloudflare:workers"` 在 server component / route handler 用 D1；binding 写在 vite.config.ts cloudflare plugin config，自动进 dist/server/wrangler.json。
+- 动态页用 `export const dynamic = "force-dynamic"` 避免 build 时执行 D1 查询。
+- 免费版 bundle 压缩 3MB：数据必须移出 bundle；客户端组件 import 服务端模块用 `import type` 隔离。

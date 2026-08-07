@@ -1,13 +1,13 @@
 # Letter Poetry · 古典詩文檔案
 
-> 可檢索、可細讀、可收藏的在線詩文集 —— 唐詩宋詞、詩經楚辭、元曲與蒙學經典，一處安放。
+> 可檢索、可細讀、可收藏的在線詩文集 —— 唐詩、宋詞、詩經、楚辭、元曲與蒙學經典，一處安放。
 
 **線上地址：** https://poetry.myletter.top · **Letter Network 成員站** · **GitHub：** https://github.com/Letter2025/letter-poetry
 **圖標：** https://poetry.myletter.top/favicon-64.png
 
 ## 項目立項（Why）
 
-古典詩文是共同的文化遺產，但多數在線合集雜亂、廣告多、難以檢索。本檔案圍繞「文本本身」重建閱讀體驗：干淨的排版、全文檢索、注釋與白話譯文、每篇獨立的穩定 URL——所有數據在構建時打包，運行時零外部 API，快而穩定。它是這封「Letter」的文學翼。
+古典詩文是共同的文化遺產，但多數在線合集雜亂、廣告多、難以檢索。本檔案圍繞「文本本身」重建閱讀體驗：干淨的排版、全文檢索、注釋與白話譯文、每篇獨立的穩定 URL。數據存儲在 Cloudflare D1、由服務端檢索，因此即使館藏遠超「靜態打包」的容量上限，站點依然保持快速。
 
 ## 寓意（What 「Letter」 Means）
 
@@ -16,106 +16,71 @@ Letter 是統一個人品牌，也是這套知識資產的集合名詞。詩歌�
 ## 功能特性
 
 - **每日一詩與隨機** —— 每天一首，一鍵隨機閱讀。
-- **12 部選集 + 蒙學** —— 唐詩三百首（320）、千家詩（219）、宋詞三百首（280）、詩經（305）、楚辭（65）、元曲（精選 1200）、花間集（497）、南唐二主詞（45）、納蘭性德（257）、曹操詩集（26）、水墨唐詩（176）、幽夢影（219）；另設獨立蒙學模塊（231 篇）。
-- **全文檢索** —— 按標題 / 作者 / 詩句，無命中時自動進入全文檢索（單文件精簡索引，一次請求）。
-- **詳情頁** —— 正文、注釋、白話譯文、上一篇 / 下一篇、復制全文。
-- **收藏夾** —— 在 `/favorites` 保存本機閱讀清單（localStorage）。
-- **作者索引** —— 在 `/authors` 瀏覽 360+ 位詩人與文人。
+- **47,000+ 篇目** —— 全唐詩（一期前 44 卷 44,020 首）+ 原 12 部選集（唐詩三百、宋詞三百、詩經、楚辭、元曲、花間集、納蘭性德…），後續分批擴錄更多卷。
+- **服務端檢索** —— 按標題 / 作者 / 詩句，經由 `/api/poems`（D1 支撐）檢索；瀏覽器無需下載全庫。
+- **詳情頁** —— 正文、注釋、白話譯文、復制全文、收藏。
+- **作者索引** —— 在 `/authors` 瀏覽 2,390+ 位詩人與文人。
 - **繁簡切換** —— 閱讀正文可隨時在簡體 / 繁體之間切換。
-- **蒙學長文閱讀** —— 三字經、百家姓、千字文、古文觀止（按卷分組）等。
+- **蒙學長文閱讀** —— 三字經、古文觀止（按卷分組）等。
 - **深色模式與響應式** —— 共用 Letter 設計令牌。
-- **SEO 與分享** —— 每篇獨立頁面 + sitemap + JSON-LD + Open Graph 卡片圖 + RSS + PWA Manifest。
+- **SEO 與分享** —— 每篇獨立頁面 + sitemap（選集/作者/蒙學）+ JSON-LD + Open Graph 卡片圖 + RSS + PWA Manifest。
 
 ## 技術棧
 
 - **框架：** Next.js 16（App Router）+ vinext，部署為 Cloudflare Worker
-- **數據構建：** `scripts/build-data.mjs` 將 [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) 原始 JSON 編譯為精簡數據（分選集文件、單文件 `full.json` 檢索集、`authors.json`、靜態 `rss.xml`）
-- **轉換：** `chinese-conv`（構建期繁轉簡；閱讀器繁簡切換用簡轉繁）
-- **運行時：** 零外部 API —— 全部數據隨 Worker bundle 打包
-- **CI/CD：** GitHub Actions → `cloudflare/wrangler-action@v3`，每次部署執行 `npm test`
+- **存儲：** Cloudflare D1（`poems` 表，僅 id 主鍵索引，適配免費版每日 10 萬行寫配額）；選集/作者列表走小型靜態文件
+- **檢索：** D1 上的服務端 SQL `LIKE`（標題/作者/正文），分頁 API
+- **數據構建：** `scripts/build-data.mjs` 編譯 chinese-poetry JSON（chinese-conv 轉簡），產出 D1 seed SQL 分片 + 小型靜態元數據
+- **運行時：** 零外部 API —— 全部查詢走本站 Worker + D1
+- **CI/CD：** GitHub Actions → `cloudflare/wrangler-action@v3`（build + test + deploy）
 
 ## 目錄結構
 
 ```text
 app/
-  page.tsx          # 首頁：每日一詩、隨機、選集入口
-  poems/            # 詩文列表 + 全文檢索
-  poem/  collections/  # 詳情與選集瀏覽
-  authors/          # 作者索引 + 作者作品頁
-  mengxue/          # 蒙學經典長文閱讀（按卷分組）
-  favorites/        # 本機收藏清單
-  sitemap.ts  robots.ts  # SEO
-  globals.css       # Letter 設計令牌
-components/
-  daily-poem.tsx  collection-browser.tsx  poem-actions.tsx  chrome.tsx
-  poem-text.tsx  script-toggle.tsx  author-browser.tsx
-lib/                # 數據加載 / 檢索工具 / 繁簡狀態
-scripts/
-  build-data.mjs    # 從 ../cf-poetry-data 編譯數據（缺失時沿用已提交數據）
+  page.tsx          # 首頁：選集、統計、每日一詩
+  poems/            # 檢索與列表（服務端 API）
+  poem/  collections/  authors/  mengxue/  favorites/
+  api/
+    poems/          # 列表/檢索 API（?c=、?q=、?author=、?ids=、page/size）
+    poem/[id] daily random
+  sitemap.ts  robots.ts  globals.css
+components/  lib/  scripts/
+seed/               # D1 schema + seed SQL 分片（構建產物）
 tests/
-  rendered-html.test.mjs  # 數據與產物冒煙測試（npm test）
-public/
-  data/  rss.xml  manifest.webmanifest  icon-512.png  …
-worker/  build/
-.github/workflows/deploy.yml  # CI 部署
+.github/workflows/deploy.yml
 ```
 
 ## 快速開始
 
-### 環境要求
-
-- Node.js 22+
-
-### 安裝
-
 ```bash
 npm install
-```
-
-### 構建數據（可選）
-
-```bash
-npm run build-data   # 從 ../cf-poetry-data 編譯；數據源缺失時沿用已提交數據
-```
-
-### 本地開發
-
-```bash
+npm run build-data   # 從 ../cf-poetry-data 編譯（或沿用已提交數據）
 npm run dev
-```
-
-### 構建與測試
-
-```bash
 npm run build
 npm test
 ```
 
-## 部署（Cloudflare Workers）
+## 部署（Cloudflare Workers + D1）
 
-GitHub Actions（`.github/workflows/deploy.yml`）在 push 到 `main` 時觸發：
+1. 創建 D1：`wrangler d1 create letter-poetry-db`（binding `DB` 已在 `vite.config.ts` 配置）。
+2. 應用 schema 並導入數據（注意免費版每日 10 萬行寫配額，seed 已分片）：
+   ```bash
+   npx wrangler d1 execute letter-poetry-db --remote --file=seed/0001_schema.sql
+   npx wrangler d1 execute letter-poetry-db --remote --file=seed/seed_01.sql
+   # …seed_02..08（每片約 6000 首；含主鍵索引每首計 2 行寫）
+   ```
+3. push 到 `main` —— GitHub Actions 執行 build + test + `wrangler deploy --config dist/server/wrangler.json --name letter-poetry`。
 
-1. `npm ci` + `npm run build`
-2. `npm test`
-3. `wrangler deploy --config dist/server/wrangler.json --name letter-poetry`
-
-手動等價命令：
-
-```bash
-npm run build
-npm test
-npx wrangler deploy --config dist/server/wrangler.json --name letter-poetry
-```
-
-Secrets：`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`。Worker 綁定 **poetry.myletter.top**。
+Secrets：`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`。Worker 綁定 **poetry.myletter.top** 與 D1 `letter-poetry-db`（binding `DB`）。
 
 ## 配置與環境變量
 
-無需運行時環境變量；全部文本數據構建時打包。
+無需運行時環境變量；數據經 D1 binding（`DB`）訪問。選集列表數據為小型靜態文件，全文在 D1。
 
 ## 數據許可
 
-文本數據來自 [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry)（MIT License），文本以原始古籍為准。
+文本數據來自 [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry)（MIT License），含全唐詩；文本以原始古籍為准。
 
 ## License
 
@@ -125,4 +90,4 @@ Secrets：`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`。Worker 綁定 **poe
 
 - Letter Network 家族成員站，共用設計令牌。
 - 詩文數據： [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry)（MIT）。
-- 基於 [Next.js](https://nextjs.org) 與 [vinext](https://github.com/cloudflare/vinext) 構建。
+- 基於 [Next.js](https://nextjs.org)、[vinext](https://github.com/cloudflare/vinext) 與 Cloudflare D1 構建。
