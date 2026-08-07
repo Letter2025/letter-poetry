@@ -51,6 +51,14 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 - **服务端数据**：详情/搜索走 `lib/db.ts`（`env.DB`），**不要**把全量诗集 JSON 重新打进 bundle（3MB 压缩上限）。
 - 新增数据源/修正数据：改 `scripts/build-data.mjs` → `npm run build-data` → 导入 D1（注意配额）→ 更新 seed 产物与 collections-meta。
 
+### 缓存策略（CDN 边缘缓存）
+
+- 页面（`/`、`/poem/*`、`/collections/*`、`/authors*`、`/mengxue*`、`/poems`、`/favorites`）：`Cache-Control: public, max-age=3600, s-maxage=86400`（CDN 缓存 1 天）。
+- `/api/poems`、`/api/poem/[id]`、`/api/poem/daily`：`public, max-age=60, s-maxage=300`（短缓存）。
+- `/api/poem/random`：`no-store`（必须每次随机）。
+- 实现于 `worker/index.ts`（仅 GET + 200 设置头）。**不要用 KV 做页面缓存**：KV 免费写 1000/天，无法预热 4.7 万首。
+- 数据导入后旧缓存最长保留 1 天（TTL 自动过期）；如需立即生效可 purge。
+
 ### 部署流程
 
 1. 手动完成数据导入（见上）。
