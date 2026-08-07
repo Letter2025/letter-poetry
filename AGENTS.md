@@ -57,6 +57,11 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 - 字体：Noto Sans SC ttf（satori 不支持 woff2）运行时加载 + 模块缓存。
 - 记住：Workers 禁止动态编译 WASM，resvg 必须 `?module` 静态导入；不要用 @vercel/og（其 resvg 运行时加载 wasm 在 Workers 失效）。
 
+### sitemap
+
+- `/sitemap.xml`：sitemap index → `/sitemap-static.xml`（精选）+ `/sitemap/1..N`（详情分页，D1 每页 10,000 条）。
+- 数据量 47,629 → 5 页；改动后旧 `/sitemap.xml` 可能被 CDN 缓存约 1 天（token 无 purge 权限）。
+
 ### 缓存策略（CDN 边缘缓存，Cache API）
 
 - Cloudflare **默认不缓存 Worker 响应**，需用 **Cache API**（`caches.default`）显式缓存页面。

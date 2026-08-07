@@ -28,3 +28,8 @@
 - satori 字体解析基于 opentype.js，**不支持 woff2**（报 Unsupported OpenType signature wOF2），必须 ttf/otf。
 - 中文 ttf 来源：`@expo-google-fonts/noto-sans-sc`（NotoSansSC_400Regular.ttf，8.5MB，jsdelivr CDN）；运行时加载 + 模块级缓存 + 重试。
 - 本方案 bundle gzip 0.84MB（免费 3MB 内）；OG 图带 Cache-Control 1 天。
+## SITEMAP-2026-08-07（sitemap 分页）
+- 方案：/sitemap.xml（sitemap index）→ /sitemap-static.xml（精选，bundle 数据）+ /sitemap/1..N（详情分页，D1 每页 10,000 条）。
+- 4.7 万首 → 5 页（第 5 页 7,629）；/sitemap/6 返回 404（超出）。
+- 替换旧 app/sitemap.ts 时，旧 /sitemap.xml 被 CDN 缓存（s-maxage 86400）约 1 天过渡；token 无 purge_cache 权限（zone 级受限），只能等 TTL 或换 URL。
+- robots.txt 是 Cloudflare Managed（含 Content-Signal），自定义部分（sitemap 指向）在文件尾部生效。
