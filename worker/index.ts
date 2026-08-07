@@ -6,38 +6,38 @@ interface ExecutionContext {
   passThroughOnException(): void;
 }
 
-// [LETTER-POETRY-PLAN-003#1] CDN 边缘缓存策略：详情页/页面长缓存，列表/搜索 API 短缓存，随机不缓存
-// 站点无用户系统与个性化内容，页面可安全缓存；命中后不进 Worker、不查 D1。
-function cacheControlFor(pathname: string): string | null {
-  if (
-    pathname === "/" ||
-    pathname.startsWith("/poem/") ||
-    pathname.startsWith("/collections/") ||
-    pathname.startsWith("/authors") ||
-    pathname.startsWith("/mengxue") ||
-    pathname.startsWith("/poems") ||
-    pathname.startsWith("/favorites")
-  ) {
-    return "public, max-age=3600, s-maxage=86400";
-  }
-  if (pathname.startsWith("/api/poem/random")) {
-    return "no-store";
-  }
-  if (pathname.startsWith("/api/")) {
-    return "public, max-age=60, s-maxage=300";
-  }
-  return null;
+// [LETTER-POETRY-PLAN-003#1] 页面边缘缓存：Cloudflare 默认不缓存 Worker 响应，需用 Cache API 显式缓存。
+// 仅缓存页面 HTML（非 RSC 请求）；API 由 route handler 自控（no-store/短缓存）。
+const PAGE_CC = "public, max-age=3600, s-maxage=86400";
+const PAGE_PREFIXES = ["/poem/", "/collections/", "/authors", "/mengxue", "/poems", "/favorites"];
+
+function isPage(pathname: string): boolean {
+  return pathname === "/" || PAGE_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
 const worker = {
   async fetch(request: Request, env: Record<string, unknown>, ctx: ExecutionContext): Promise<Response> {
-    const res = await handler.fetch(request, env, ctx);
-    if (request.method !== "GET" || res.status !== 200) return res;
-    const cc = cacheControlFor(new URL(request.url).pathname);
-    if (!cc) return res;
-    const cached = new Response(res.body, res);
-    cached.headers.set("Cache-Control", cc);
-    return cached;
+    if (request.method === "GET") {
+      const url = new URL(request.url);
+      const accept = request.headers.get("Accept") ?? "";
+      // RSC 导航请求（text/x-component）不缓存，避免缓存错变体
+      if (isPage(url.pathname) && !accept.includes("text/x-component")) {
+        const cache = caches.default;
+        const hit = await cache.match(request);
+        if (hit) return hit;
+        const res = await handler.fetch(request, env, ctx);
+        if (res.status === 200) {
+          const out = new Response(res.body, res);
+          out.headers.set("Cache-Control", PAGE_CC);
+          const store = out.clone();
+          store.headers.set("Cache-Control", PAGE_CC);
+          ctx.waitUntil(cache.put(request, store));
+          return out;
+        }
+        return res;
+      }
+    }
+    return handler.fetch(request, env, ctx);
   },
 };
 
