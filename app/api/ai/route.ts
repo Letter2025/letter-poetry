@@ -1,12 +1,10 @@
-// [LETTER-POETRY-PLAN-010#2] AI 解析/问答代理：服务端转发智谱 OpenAI 兼容接口
-// Key 只存 Cloudflare Secret（env.ZHIPU_API_KEY），绝不进 git / 前端 / bundle
-import { env } from "cloudflare:workers";
+// [LETTER-POETRY-PLAN-010#2][LETTER-POETRY-PLAN-011#2] AI 解析/问答代理
+// 服务端转发三级回退链（lib/llm.ts：智谱 → SiliconFlow → Workers AI）；Key 只存 Worker secret
 import { getPoemRow } from "@/lib/db";
+import { generateWithFallback } from "@/lib/llm";
 
 export const dynamic = "force-dynamic";
 
-const ZHIPU_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
-const MODEL = "glm-4.7-flash";
 const MAX_QUESTION = 300;
 const MAX_TEXT = 2000;
 
@@ -57,9 +55,6 @@ export async function POST(req: Request) {
   if (!text) return json({ error: "poem text required" }, 400);
   if (text.length > MAX_TEXT) text = text.slice(0, MAX_TEXT) + "（长诗节选）";
 
-  const key = env.ZHIPU_API_KEY;
-  if (!key) return json({ error: "AI 未配置（缺少 ZHIPU_API_KEY）" }, 503);
-
   const system = mode === "explain" ? SYSTEM_EXPLAIN : SYSTEM_ASK;
   const user =
     mode === "ask"
@@ -67,37 +62,10 @@ export async function POST(req: Request) {
       : `诗文：\n${text}`;
 
   try {
-    const upstream = await fetch(ZHIPU_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        max_tokens: 1024,
-        temperature: 0.7,
-        // [LETTER-POETRY-PLAN-010] glm-4.7-flash 默认思考模式会耗尽 max_tokens 导致 content 为空，必须禁用
-        thinking: { type: "disabled" },
-      }),
-    });
-
-    if (!upstream.ok) {
-      const detail = (await upstream.text().catch(() => "")).slice(0, 200);
-      return json({ error: `AI 服务异常（${upstream.status}）`, detail }, 502);
-    }
-
-    const data = (await upstream.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = data.choices?.[0]?.message?.content?.trim() ?? "";
-    if (!content) return json({ error: "AI 返回为空" }, 502);
-    return json({ content }, 200);
+    const { content, provider } = await generateWithFallback({ system, user });
+    return json({ content, provider }, 200);
   } catch (e) {
-    return json({ error: "AI 请求失败", detail: String(e).slice(0, 200) }, 502);
+    const detail = e instanceof Error ? e.message : String(e);
+    return json({ error: "AI 生成失败（所有 Provider 均不可用）", detail: detail.slice(0, 200) }, 502);
   }
 }

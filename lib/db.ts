@@ -16,7 +16,8 @@ type D1Database = {
 };
 
 declare module "cloudflare:workers" {
-  export const env: { DB: D1Database; ZHIPU_API_KEY?: string };
+  type AiLike = { run(model: string, inputs: Record<string, unknown>): Promise<unknown> };
+export const env: { DB: D1Database; ZHIPU_API_KEY?: string; SILICONFLOW_API_KEY?: string; AI?: AiLike };
 }
 
 const COLS = "id,title,author,collection,rhythmic,section,text,notes,tr";

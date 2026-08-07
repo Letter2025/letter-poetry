@@ -74,13 +74,15 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 - `components/tts-control.tsx`：浏览器 SpeechSynthesis（中文语音、语速、分段 ≤200 字）；详情页/每日一诗（compact）/蒙学接入。
 - 客户端渲染（SSR 返回 null），curl 验证不到；验证用 esbuild 编译 + mock window/speechSynthesis。
 
-### AI 研读（智谱 GLM）
+### AI 研读（三级回退链）
 
-- `app/api/ai/route.ts`：`POST /api/ai` 服务端代理（`mode=explain|ask`），调智谱 OpenAI 兼容接口 `https://open.bigmodel.cn/api/paas/v4/chat/completions`，model `glm-4.7-flash`；有 `id` 时从 D1 取诗文，输入限制 question ≤300 字 / text ≤2000 字（长诗截断）。
-- **API Key 只存 Cloudflare Secret**（`npx wrangler secret put ZHIPU_API_KEY --name letter-poetry`），代码只读 `env.ZHIPU_API_KEY`，绝不写死 / 进 git / 前端。
+- `lib/llm.ts`：`generateWithFallback({system,user})` 三级回退链 —— ① 智谱模型池 `glm-4.7-flash,glm-4-flash-250414`（thinking disabled）→ ② SiliconFlow `THUDM/GLM-Z1-9B-0414,tencent/Hunyuan-MT-7B`（需 `SILICONFLOW_API_KEY`，缺 key 自动跳过）→ ③ Cloudflare Workers AI `@cf/openai/gpt-oss-20b` 兜底；每模型指数退避重试 ≤2 次。
+- `app/api/ai/route.ts`：`POST /api/ai` 服务端代理（`mode=explain|ask`），有 `id` 时从 D1 取诗文，输入限制 question ≤300 字 / text ≤2000 字（长诗截断）；返回 `{ content, provider }`。
+- **Key 只存 Cloudflare Secret**（`ZHIPU_API_KEY` / `SILICONFLOW_API_KEY`，用 `wrangler secret bulk` 设置避免管道换行），代码只读 env，绝不写死 / 进 git / 前端。
+- Workers AI binding：`vite.config.ts` 加 `ai: { binding: "AI" }`（免费 10K neurons/天，仅兜底）。
 - `components/ai-panel.tsx`：详情页 AI 面板（解析 + 询问），客户端渲染（curl 验证不到）；结果 `white-space: pre-line` 纯文本渲染（无 markdown）。
 - route `force-dynamic` + `Cache-Control: no-store`：AI 响应含用户输入，**不进 CDN 缓存**。
-- 每次调用为独立请求（无会话状态）；免费模型限流（429）时前端显示友好错误。
+- 每次调用为独立请求（无会话状态）；所有 Provider 失败时返回 502 友好错误。
 
 ### 搜索
 

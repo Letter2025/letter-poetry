@@ -19,6 +19,8 @@ const localBindingConfig = {
       database_id: "2b40b040-71d5-4931-b6a3-d963b158003c",
     },
   ],
+  // [LETTER-POETRY-PLAN-011#3] Workers AI 兜底（gpt-oss-20b 免费）
+  ai: { binding: "AI" },
   r2_buckets: r2
     ? [
         {

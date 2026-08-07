@@ -50,7 +50,7 @@ export function AiPanel({ poem }: AiPanelProps) {
     <section className="ai-panel">
       <div className="ai-panel-head">
         <span className="eyebrow"><span className="blue">{"//"}</span> AI 研读</span>
-        <span className="ai-hint">由智谱 GLM 生成 · 仅供参考</span>
+        <span className="ai-hint">由 AI 生成 · 仅供参考</span>
       </div>
 
       <div className="ai-block">
