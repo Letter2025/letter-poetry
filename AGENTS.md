@@ -15,6 +15,7 @@
 | `app/mengxue/` | 蒙学长文（构建期小数据） |
 | `app/favorites/` | 本机收藏（localStorage + API 批量取） |
 | `app/api/poems/route.ts` | 列表/检索 API（c/q/author/ids/page/size） |
+| `app/api/ai/route.ts` | AI 解析/问答代理（POST，智谱 GLM，Key 在 Secret） |
 | `app/api/poem/[id]|daily|random` | 详情 / 每日一诗 / 随机 API |
 | `lib/db.ts` | **D1 访问层**（server component / route handler 用 `env.DB`） |
 | `lib/poetry.ts` | 构建期小元数据（选集/蒙学/作者） |
@@ -72,6 +73,14 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 
 - `components/tts-control.tsx`：浏览器 SpeechSynthesis（中文语音、语速、分段 ≤200 字）；详情页/每日一诗（compact）/蒙学接入。
 - 客户端渲染（SSR 返回 null），curl 验证不到；验证用 esbuild 编译 + mock window/speechSynthesis。
+
+### AI 研读（智谱 GLM）
+
+- `app/api/ai/route.ts`：`POST /api/ai` 服务端代理（`mode=explain|ask`），调智谱 OpenAI 兼容接口 `https://open.bigmodel.cn/api/paas/v4/chat/completions`，model `glm-4.7-flash`；有 `id` 时从 D1 取诗文，输入限制 question ≤300 字 / text ≤2000 字（长诗截断）。
+- **API Key 只存 Cloudflare Secret**（`npx wrangler secret put ZHIPU_API_KEY --name letter-poetry`），代码只读 `env.ZHIPU_API_KEY`，绝不写死 / 进 git / 前端。
+- `components/ai-panel.tsx`：详情页 AI 面板（解析 + 询问），客户端渲染（curl 验证不到）；结果 `white-space: pre-line` 纯文本渲染（无 markdown）。
+- route `force-dynamic` + `Cache-Control: no-store`：AI 响应含用户输入，**不进 CDN 缓存**。
+- 每次调用为独立请求（无会话状态）；免费模型限流（429）时前端显示友好错误。
 
 ### 搜索
 

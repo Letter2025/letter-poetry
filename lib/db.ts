@@ -16,7 +16,7 @@ type D1Database = {
 };
 
 declare module "cloudflare:workers" {
-  export const env: { DB: D1Database };
+  export const env: { DB: D1Database; ZHIPU_API_KEY?: string };
 }
 
 const COLS = "id,title,author,collection,rhythmic,section,text,notes,tr";

@@ -10,6 +10,7 @@
 （记录待办功能与改进想法，格式：日期 | 需求 | 状态）
 2026-08-07 | 全文检索服务端化（route handler / Worker API） | 未做（vinext 对 route handler 支持未验证；当前 full.json 单文件方案已够）
 2026-08-07 | 收藏跨设备同步（D1/账号） | 未做（当前 localStorage 本机收藏，README 已如实说明）
+2026-08-07 | 首页/策展页 AI 附加能力（今日诗签/飞花令/命题藏头诗/风格自测） | 待用户确认后另立 PLAN
 
 ## LEARNINGS
 （记录每次任务完成后的经验沉淀，格式：日期 | 主题 | 结论）
@@ -17,6 +18,7 @@
 2026-08-07 | vinext 产物结构 | dist/server/wrangler.json 是部署配置（CI --config 指向它）；public 静态资源复制到 dist/client；静态路由由运行时预渲染，构建日志中 ƒ Dynamic 不代表不可用
 2026-08-07 | 数据驱动页面 | 作者页/收藏页/全文检索均改为构建期生成数据（authors.json/full.json），避免运行时计算与多请求拉取
 2026-08-07 | PowerShell 中文传输 | @'...'@ | node - 会损坏中文（变 ?）；涉及中文的脚本一律 WriteAllText 写临时文件再执行
+2026-08-07 | AI 接入（智谱 GLM） | glm-4.7-flash 实测可用（open.bigmodel.cn/api/paas/v4/chat/completions，OpenAI 兼容）；key 只存 wrangler secret（put ZHIPU_API_KEY），代码读 env.ZHIPU_API_KEY；route 必须 force-dynamic + no-store（响应含用户输入，不进 CDN 缓存）；前端纯文本渲染防注入
 ## ARCHITECTURE-2026-08-07（架构升级）
 - D1 rows_written 免费 10 万/天，按「行 + 索引」计费：普通 INSERT 1 行 + 主键索引 1 = 2/首；多列索引 4/首；FTS5 ≈5/首 → 中文搜索不能建 FTS，用 LIKE（D1 端执行不占 Worker CPU，3 万行 2ms）。
 - D1 不支持 SQL BEGIN/COMMIT（用 API 事务）；单条语句长度 <54KB（按 40KB 字节分批）。
