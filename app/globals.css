@@ -227,3 +227,9 @@ mark { background: color-mix(in srgb, var(--blue) 22%, transparent); color: var(
 .tts-control { display: inline-flex; gap: 9px; align-items: center; flex-wrap: wrap; margin: 20px 0; }
 .tts-compact { margin: 0; }
 .tts-rate { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--rule); padding: 8px 10px; }
+/* === Letter Poetry pinyin annotation === */
+.annot-bar { display: flex; justify-content: center; margin: 0 0 18px; }
+.annot-char { cursor: pointer; border-radius: 3px; padding: 0 1px; }
+.annot-char:hover { background: color-mix(in srgb, var(--blue) 18%, transparent); }
+ruby { ruby-position: over; }
+ruby rt { font-size: 0.48em; color: var(--muted); letter-spacing: 0; }

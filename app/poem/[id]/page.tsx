@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PoemActions } from "@/components/poem-actions";
-import { PoemText } from "@/components/poem-text";
+import { AnnotatedText } from "@/components/annotated";
 import { TtsControl } from "@/components/tts-control";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
 import { getCollectionMeta } from "@/lib/poetry";
@@ -75,7 +75,7 @@ export default async function PoemDetailPage({ params }: { params: { id: string 
               <><span className="dot">·</span><span>词牌 {row.rhythmic}</span></>
             )}
           </div>
-          <PoemText lines={lines} className="poem-text" lineClass="verse-line" />
+          <AnnotatedText lines={lines} className="poem-text" lineClass="verse-line" />
           <PoemActions id={row.id} text={row.text} title={`${row.title} · ${row.author || "佚名"}`} />
           <TtsControl text={`${row.title}，${row.author || "佚名"}。${row.text}`} />
           {row.tr && (
