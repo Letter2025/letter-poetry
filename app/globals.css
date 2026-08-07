@@ -233,3 +233,21 @@ mark { background: color-mix(in srgb, var(--blue) 22%, transparent); color: var(
 .annot-char:hover { background: color-mix(in srgb, var(--blue) 18%, transparent); }
 ruby { ruby-position: over; }
 ruby rt { font-size: 0.48em; color: var(--muted); letter-spacing: 0; }
+/* === Letter Poetry curation === */
+.curation-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.curation-card { position: relative; border: 1px solid var(--rule); background: var(--panel); padding: 22px 24px; transition: all .18s; }
+.curation-card:hover { border-color: var(--blue); background: var(--bluewash); transform: translateY(-2px); }
+.curation-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.curation-name { font: 700 12px ui-monospace, monospace; letter-spacing: .1em; color: var(--blue); }
+.curation-count { color: var(--muted); font-size: 12px; }
+.curation-title { margin: 0 0 8px; font-size: 22px; letter-spacing: -.02em; font-family: "Songti SC","Noto Serif SC","SimSun",serif; }
+.curation-desc { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.8; }
+.season-pick { border: 1px solid var(--blue); background: var(--panel); box-shadow: 5px 5px 0 var(--bluewash); padding: 26px 30px; }
+.season-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.season-desc { color: var(--muted); font-size: 14px; margin: 12px 0 18px; }
+.season-lines { display: flex; flex-direction: column; }
+.season-line { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 11px 2px; border-bottom: 1px solid var(--rule); }
+.season-line:last-child { border-bottom: 0; }
+.season-title { font-family: "Songti SC","Noto Serif SC","SimSun",serif; font-size: 17px; }
+.season-author { color: var(--muted); font-size: 13px; }
+@media (max-width:780px){ .curation-grid{grid-template-columns:1fr} }

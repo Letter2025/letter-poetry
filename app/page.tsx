@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DailyPoem } from "@/components/daily-poem";
+import { SeasonPick } from "@/components/season-pick";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
 import { getIndex, getMengxue } from "@/lib/poetry";
 
@@ -30,6 +31,10 @@ export default function Home() {
 
         <section className="section">
           <DailyPoem />
+        </section>
+
+        <section className="section" style={{ borderBottom: 0 }}>
+          <SeasonPick />
         </section>
 
         <section className="section">

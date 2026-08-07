@@ -1,7 +1,8 @@
 import metaJson from "./generated/collections-meta.json";
 import mengxueJson from "./generated/mengxue.json";
 import authorsJson from "./generated/authors.json";
-import type { Author, CollectionMeta, MengxueDoc, PoetryIndex } from "./types";
+import themesJson from "./generated/themes.json";
+import type { Author, CollectionMeta, CurationGroup, MengxueDoc, PoetryIndex } from "./types";
 
 // [LETTER-POETRY-PLAN-002] 构建期小元数据（bundle）；正文/诗目数据在 D1，通过 lib/db.ts 查询
 export function getIndex(): PoetryIndex {
@@ -30,4 +31,12 @@ export function getAuthors(): Author[] {
 
 export function getAuthor(name: string): Author | null {
   return getAuthors().find((x) => x.name === name) ?? null;
+}
+// [LETTER-POETRY-PLAN-009] 策展数据（季节/主题）
+export function getThemes(): CurationGroup[] {
+  return themesJson.groups as CurationGroup[];
+}
+
+export function getTheme(slug: string): CurationGroup | undefined {
+  return getThemes().find((g) => g.slug === slug);
 }

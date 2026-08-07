@@ -1,0 +1,162 @@
+{
+ "generatedAt": "2026-08-07",
+ "groups": [
+  {
+   "slug": "season-spring",
+   "kind": "season",
+   "name": "春日",
+   "title": "春眠不觉晓，处处闻啼鸟",
+   "desc": "把春日的花、雨、柳与早莺收进一册。",
+   "ids": [
+    "tangshi300-018",
+    "qianjiashi-104",
+    "shuimo-114",
+    "shuimo-104",
+    "quantangshi-11228",
+    "quantangshi-18283",
+    "shuimo-074",
+    "qianjiashi-098"
+   ]
+  },
+  {
+   "slug": "season-summer",
+   "kind": "season",
+   "name": "夏日",
+   "title": "绿树阴浓夏日长",
+   "desc": "盛夏的池荷、树荫与蝉声。",
+   "ids": [
+    "shuimo-136",
+    "quantangshi-33263",
+    "quantangshi-22227"
+   ]
+  },
+  {
+   "slug": "season-autumn",
+   "kind": "season",
+   "name": "秋声",
+   "title": "自古逢秋悲寂寥",
+   "desc": "秋日的月色、砧声与登高。",
+   "ids": [
+    "tangshi300-089",
+    "tangshi300-068",
+    "tangshi300-190",
+    "shuimo-139",
+    "quantangshi-19380",
+    "shuimo-132",
+    "quantangshi-08215"
+   ]
+  },
+  {
+   "slug": "season-winter",
+   "kind": "season",
+   "name": "冬日",
+   "title": "晚来天欲雪，能饮一杯无",
+   "desc": "围炉、踏雪与归家的灯火。",
+   "ids": [
+    "tangshi300-020",
+    "shuimo-093",
+    "quantangshi-07012",
+    "tangshi300-254",
+    "tangshi300-009",
+    "nalan-001",
+    "qianjiashi-213"
+   ]
+  },
+  {
+   "slug": "theme-moon",
+   "kind": "theme",
+   "name": "明月",
+   "title": "海上生明月，天涯共此时",
+   "desc": "月是离人眼里最长的牵挂。",
+   "ids": [
+    "tangshi300-011",
+    "quantangshi-05581",
+    "songci300-039",
+    "tangshi300-223",
+    "tangshi300-141",
+    "quantangshi-16325",
+    "tangshi300-017",
+    "quantangshi-08215",
+    "quantangshi-13351"
+   ]
+  },
+  {
+   "slug": "theme-farewell",
+   "kind": "theme",
+   "name": "送别",
+   "title": "劝君更尽一杯酒",
+   "desc": "长亭与灞桥的折柳。",
+   "ids": [
+    "shuimo-095",
+    "quantangshi-08353",
+    "tangshi300-039",
+    "shuimo-093",
+    "tangshi300-081",
+    "tangshi300-030",
+    "tangshi300-095",
+    "quantangshi-37662"
+   ]
+  },
+  {
+   "slug": "theme-homesick",
+   "kind": "theme",
+   "name": "思乡",
+   "title": "独在异乡为异客",
+   "desc": "故乡是一封写不完的信。",
+   "ids": [
+    "tangshi300-033",
+    "tangshi300-011",
+    "shuimo-082",
+    "tangshi300-091",
+    "tangshi300-071",
+    "tangshi300-114",
+    "tangshi300-005",
+    "tangshi300-101"
+   ]
+  },
+  {
+   "slug": "theme-frontier",
+   "kind": "theme",
+   "name": "边塞",
+   "title": "黄沙百战穿金甲",
+   "desc": "铁马冰河与羌笛声中。",
+   "ids": [
+    "tangshi300-278",
+    "tangshi300-277",
+    "tangshi300-034",
+    "tangshi300-254",
+    "quantangshi-06032",
+    "quantangshi-02576",
+    "tangshi300-317",
+    "shuimo-129"
+   ]
+  },
+  {
+   "slug": "theme-pastoral",
+   "kind": "theme",
+   "name": "田园",
+   "title": "开轩面场圃，把酒话桑麻",
+   "desc": "田园是归隐者的一方净土。",
+   "ids": [
+    "tangshi300-127",
+    "tangshi300-216",
+    "shuimo-131",
+    "tangshi300-089"
+   ]
+  },
+  {
+   "slug": "theme-history",
+   "kind": "theme",
+   "name": "咏史怀古",
+   "title": "旧时王谢堂前燕",
+   "desc": "登临怀古，世事如棋。",
+   "ids": [
+    "tangshi300-057",
+    "tangshi300-075",
+    "tangshi300-192",
+    "tangshi300-272",
+    "tangshi300-058"
+   ]
+  }
+ ]
+}

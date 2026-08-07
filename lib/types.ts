@@ -54,3 +54,17 @@ export type PoemRow = {
   notes: string;
   tr: string;
 };
+// [LETTER-POETRY-PLAN-009] 策展（季节/主题）
+export type CurationGroup = {
+  slug: string;
+  kind: "season" | "theme";
+  name: string;
+  title: string;
+  desc: string;
+  ids: string[];
+};
+
+export type CurationIndex = {
+  generatedAt: string;
+  groups: CurationGroup[];
+};
