@@ -3,19 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
-import type { CollectionMeta, PoemMeta } from "@/lib/types";
+import type { CollectionMeta, PoemRow } from "@/lib/types";
 
 const FAV_KEY = "poetry-favorites";
 
-type FavoritesIndex = {
-  poems: PoemMeta[];
-  collections: CollectionMeta[];
-};
+type ApiResult = { total: number; items: PoemRow[] };
 
 export default function FavoritesPage() {
   const [ids, setIds] = useState<string[]>([]);
-  const [meta, setMeta] = useState<Record<string, PoemMeta>>({});
-  const [colShort, setColShort] = useState<Record<string, string>>({});
+  const [items, setItems] = useState<PoemRow[]>([]);
+  const [cols, setCols] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -30,23 +27,26 @@ export default function FavoritesPage() {
       setReady(true);
       return;
     }
-    // [LETTER-POETRY-PLAN-001#3] 收藏页：拉取元数据索引渲染，避免全量正文
-    fetch("/data/index.json")
+    // [LETTER-POETRY-PLAN-002#6] 收藏页：按 ids 批量调 API，不再拉全量索引
+    fetch("/data/collections-meta.json")
       .then((r) => r.json())
-      .then((idx: FavoritesIndex) => {
-        const m: Record<string, PoemMeta> = {};
-        for (const p of idx.poems) m[p.id] = p;
-        const cs: Record<string, string> = {};
-        for (const c of idx.collections) cs[c.key] = c.short;
-        setMeta(m);
-        setColShort(cs);
-        setReady(true);
-      });
+      .then((meta: { collections: CollectionMeta[] }) => {
+        const m: Record<string, string> = {};
+        for (const c of meta.collections) m[c.key] = c.short;
+        setCols(m);
+      })
+      .catch(() => setCols({}));
+    fetch(`/api/poems?ids=${encodeURIComponent(favs.join(","))}&size=200`)
+      .then((r) => r.json())
+      .then((res: ApiResult) => setItems(res.items))
+      .catch(() => setItems([]))
+      .finally(() => setReady(true));
   }, []);
 
   const remove = (id: string) => {
     const next = ids.filter((x) => x !== id);
     setIds(next);
+    setItems((prev) => prev.filter((x) => x.id !== id));
     localStorage.setItem(FAV_KEY, JSON.stringify(next));
   };
 
@@ -68,22 +68,18 @@ export default function FavoritesPage() {
           )}
           {ready && ids.length > 0 && (
             <div className="poem-list">
-              {ids.map((id) => {
-                const p = meta[id];
-                if (!p) return null;
-                return (
-                  <div key={id} className="poem-row">
-                    <Link href={`/poem/${id}`} className="poem-row-main" style={{ display: "block" }}>
-                      <h3>{p.t || "（无题）"}</h3>
-                      <p className="poem-row-first">{p.a || "佚名"}</p>
-                    </Link>
-                    <div className="poem-row-meta">
-                      <span className="terminal">{colShort[p.c] ?? p.c}</span>
-                      <button className="button dark" onClick={() => remove(id)}>取消收藏</button>
-                    </div>
+              {items.map((p) => (
+                <div key={p.id} className="poem-row">
+                  <Link href={`/poem/${p.id}`} className="poem-row-main" style={{ display: "block" }}>
+                    <h3>{p.title || "（无题）"}</h3>
+                    <p className="poem-row-first">{p.author || "佚名"}</p>
+                  </Link>
+                  <div className="poem-row-meta">
+                    <span className="terminal">{cols[p.collection] ?? p.collection}</span>
+                    <button className="button dark" onClick={() => remove(p.id)}>取消收藏</button>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </section>

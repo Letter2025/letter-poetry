@@ -39,13 +39,13 @@ export function PoemActions({ id, text, title }: { id: string; text: string; tit
     localStorage.setItem(FAV_KEY, JSON.stringify(favs));
     setFav(i < 0);
   };
+  // [LETTER-POETRY-PLAN-002#6] 随机一首走服务端 API（不再拉全量 index.json）
   const random = async () => {
     if (busy) return;
     setBusy(true);
     try {
-      const idx = await fetch("/data/index.json").then((r) => r.json());
-      const meta = idx.poems[Math.floor(Math.random() * idx.poems.length)];
-      window.location.href = `/poem/${meta.id}`;
+      const row = await fetch("/api/poem/random").then((r) => r.json());
+      if (row?.id) window.location.href = `/poem/${row.id}`;
     } finally {
       setBusy(false);
     }

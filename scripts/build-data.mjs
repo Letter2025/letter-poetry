@@ -7,11 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const SRC = path.resolve(ROOT, "..", "cf-poetry-data");
 const OUT = path.join(ROOT, "public", "data");
-const COL_DIR = path.join(OUT, "collections");
 // 数据源不存在时（如 CI 环境），使用已提交的生成数据，跳过重新生成。
 if (!fs.existsSync(SRC)) {
-  const idx = path.join(OUT, "index.json");
-  const gen = path.join(ROOT, "lib", "generated", "index.json");
+  const meta = path.join(OUT, "collections-meta.json");
+  const gen = path.join(ROOT, "lib", "generated", "mengxue.json");
   if (!fs.existsSync(idx) || !fs.existsSync(gen)) {
     console.error("[build-data] 缺少数据源目录，且没有已提交的生成数据。");
     process.exit(1);
@@ -21,7 +20,6 @@ if (!fs.existsSync(SRC)) {
 }
 
 
-fs.mkdirSync(COL_DIR, { recursive: true });
 
 function readJson(rel) {
   return JSON.parse(fs.readFileSync(path.join(SRC, rel), "utf8"));
@@ -84,9 +82,9 @@ const collectionsMeta = [];
 const poems = [];
 const colData = {};
 
-function addCollection(key, name, short, dynasty, desc, rows) {
+function addCollection(key, name, short, dynasty, desc, rows, pad = 3) {
   const list = rows.filter((r) => r.p && r.p.length > 0 && clean(r.t));
-  const withIds = list.map((r, i) => ({ id: key + "-" + String(i + 1).padStart(3, "0"), ...r }));
+  const withIds = list.map((r, i) => ({ id: key + "-" + String(i + 1).padStart(pad, "0"), ...r }));
   colData[key] = withIds;
   collectionsMeta.push({ key, name, short, dynasty, desc, count: withIds.length });
   for (const r of withIds) {
@@ -314,6 +312,35 @@ function addCollection(key, name, short, dynasty, desc, rows) {
   console.log("mengxue:", mengxue.length, "docs");
 }
 
+// ---- 全唐诗（一期：前 44 个分片，共 44,000 首；写入额度 D1 免费 10 万行/天约束）----
+{
+  const TANG_PARTS = 44;
+  const tangRows = [];
+  let tangSeq = 0;
+  for (let part = 0; part < TANG_PARTS; part++) {
+    const f = path.join(SRC, "全唐诗", "poet.tang." + (part * 1000) + ".json");
+    if (!fs.existsSync(f)) {
+      console.warn("[build-data] 缺少全唐诗分片:", f);
+      break;
+    }
+    const list = JSON.parse(fs.readFileSync(f, "utf8"));
+    for (const item of list) {
+      tangSeq += 1;
+      const p = (item.paragraphs || []).map(simp).filter(Boolean);
+      if (!p.length || !clean(item.title)) continue;
+      tangRows.push({
+        id: "quantangshi-" + String(tangSeq).padStart(5, "0"),
+        t: simp(item.title),
+        a: stripDynasty(item.author),
+        s: "卷" + (part + 1),
+        p,
+      });
+    }
+  }
+  addCollection("quantangshi", "全唐诗", "全唐诗", "唐", "清编《全唐诗》九百卷，一期收录前四十四卷；后续随数据分批扩录。", tangRows, 5);
+  console.log("quantangshi:", tangRows.length, "poems");
+}
+
 // ---- 写文件 ----
 const index = {
   generatedAt: localDate(),
@@ -322,14 +349,6 @@ const index = {
   poems,
 };
 
-fs.writeFileSync(path.join(OUT, "index.json"), JSON.stringify(index), "utf8");
-// [LETTER-POETRY-PLAN-001#1] 全文检索精简全集（单请求，替代 12 个 collection 并发拉取）
-const full = [];
-for (const [key, list] of Object.entries(colData)) {
-  for (const r of list) full.push({ id: r.id, t: r.t, a: r.a || "", c: key, p: r.p });
-}
-fs.writeFileSync(path.join(OUT, "full.json"), JSON.stringify(full), "utf8");
-console.log("full.json:", (fs.statSync(path.join(OUT, "full.json")).size / 1024).toFixed(1) + " KB");
 // [LETTER-POETRY-PLAN-001#1] 作者聚合（作者索引页用）
 const authorMap = new Map();
 for (const p of poems) {
@@ -345,26 +364,92 @@ console.log("authors.json:", authors.length, "authors");
 // [LETTER-POETRY-PLAN-001#1] 静态 RSS（避免依赖 route handler）
 const mengxueDocsForRss = JSON.parse(fs.readFileSync(path.join(OUT, "mengxue.json"), "utf8"));
 fs.writeFileSync(path.join(ROOT, "public", "rss.xml"), buildRss(index, mengxueDocsForRss), "utf8");
-console.log("rss.xml: generated");
-for (const [key, list] of Object.entries(colData)) {
-  fs.writeFileSync(path.join(COL_DIR, key + ".json"), JSON.stringify(list), "utf8");
+// ---- D1 seed SQL（架构升级：数据进 D1，服务端检索）----
+{
+  const SEED_DIR = path.join(ROOT, "seed");
+  // [LETTER-POETRY-PLAN-002] D1 schema：仅 id 主键索引（rows_written 按行+索引计数，免费 10 万/天）
+  const seedSchema = `-- [LETTER-POETRY-PLAN-002] D1 schema
+CREATE TABLE IF NOT EXISTS poems (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  author TEXT NOT NULL DEFAULT '',
+  collection TEXT NOT NULL,
+  rhythmic TEXT NOT NULL DEFAULT '',
+  section TEXT NOT NULL DEFAULT '',
+  text TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  tr TEXT NOT NULL DEFAULT ''
+);
+`;
+  fs.writeFileSync(path.join(SEED_DIR, "0001_schema.sql"), seedSchema, "utf8");
+  console.log("seed: 0001_schema.sql");
+  fs.mkdirSync(SEED_DIR, { recursive: true });
+  function sqlEscape(s) { return "'" + (s ?? "").toString().replace(/'/g, "''") + "'"; }
+  // [LETTER-POETRY-PLAN-002#2] 单字索引：标题/作者/正文去重单字，供 FTS5 中文检索（候选 + 精排）
+  function toChars(...texts) {
+    const set = new Set();
+    for (const t of texts) for (const ch of (t ?? "").toString()) if (ch.trim()) set.add(ch);
+    return [...set].join(" ");
+  }
+  const seedRows = [];
+  for (const [key, list] of Object.entries(colData)) {
+    for (const r of list) {
+      seedRows.push({
+        id: r.id, t: r.t, a: r.a || "", c: key, r: r.r || "", s: r.s || "",
+        text: (r.p || []).join("\n"),
+        notes: r.notes ? JSON.stringify(r.notes) : "",
+        tr: r.tr || "",
+        chars: toChars(r.t, r.a || "", (r.p || []).join("\n")),
+      });
+    }
+  }
+  // 分片：每片 6000 首（poems 6000 + fts 6000 = 12000 行写），单日总写 = 2 × 诗数 < 10 万
+  const PART_SIZE = 6000;
+  const parts = [];
+  for (let i = 0; i < seedRows.length; i += PART_SIZE) {
+    const chunk = seedRows.slice(i, i + PART_SIZE);
+    const lines = [];
+    for (let j = 0; j < chunk.length; ) {
+      const sub = [];
+      let bytes = 0;
+      while (j < chunk.length && bytes < 20000) {
+        const r = chunk[j];
+        bytes += sqlEscape(r.id).length + sqlEscape(r.t).length + sqlEscape(r.a).length + sqlEscape(r.c).length + sqlEscape(r.r).length + sqlEscape(r.s).length + sqlEscape(r.text).length + sqlEscape(r.notes).length + sqlEscape(r.tr).length;
+        sub.push(r);
+        j += 1;
+      }
+      const pv = sub.map((r) => `(${sqlEscape(r.id)},${sqlEscape(r.t)},${sqlEscape(r.a)},${sqlEscape(r.c)},${sqlEscape(r.r)},${sqlEscape(r.s)},${sqlEscape(r.text)},${sqlEscape(r.notes)},${sqlEscape(r.tr)})`).join(",");
+      lines.push(`INSERT OR REPLACE INTO poems (id,title,author,collection,rhythmic,section,text,notes,tr) VALUES ${pv};`);
+    }
+    parts.push(lines.join("\n"));
+  }
+  parts.forEach((sql, i) => {
+    const f = path.join(SEED_DIR, "seed_" + String(i + 1).padStart(2, "0") + ".sql");
+    fs.writeFileSync(f, sql, "utf8");
+    console.log("seed:", path.basename(f));
+  });
+  console.log("seed total rows:", seedRows.length, "parts:", parts.length);
+
+  // 选集元数据（首页/统计/列表入口，体积小，可进 bundle）
+  const metaOut = { generatedAt: index.generatedAt, total: index.total, collections: collectionsMeta };
+  fs.writeFileSync(path.join(OUT, "collections-meta.json"), JSON.stringify(metaOut), "utf8");
+  console.log("collections-meta.json:", metaOut.total, "poems");
 }
+console.log("rss.xml: generated");
 
 const stat = (p) => fs.statSync(p).size;
 console.log("=== build-data done ===");
 for (const c of collectionsMeta) {
-  const kb = (stat(path.join(COL_DIR, c.key + ".json")) / 1024).toFixed(1);
-  console.log(c.key.padEnd(12), String(c.count).padStart(5), kb.padStart(7) + " KB");
+  console.log(c.key.padEnd(12), String(c.count).padStart(5));
 }
-console.log("index.json:", (stat(path.join(OUT, "index.json")) / 1024).toFixed(1) + " KB");
 console.log("mengxue.json:", (stat(path.join(OUT, "mengxue.json")) / 1024).toFixed(1) + " KB");
 console.log("total poems:", poems.length);
 // ---- 生成打包数据（Worker bundle 使用，替代运行时 fs 读取） ----
 const genDir = path.join(ROOT, "lib", "generated");
 fs.mkdirSync(genDir, { recursive: true });
-fs.writeFileSync(path.join(genDir, "index.json"), JSON.stringify(index), "utf8");
-fs.writeFileSync(path.join(genDir, "collections.json"), JSON.stringify(colData), "utf8");
 const mengxueForBundle = JSON.parse(fs.readFileSync(path.join(OUT, "mengxue.json"), "utf8"));
 fs.writeFileSync(path.join(genDir, "mengxue.json"), JSON.stringify(mengxueForBundle), "utf8");
 fs.writeFileSync(path.join(genDir, "authors.json"), JSON.stringify(authors), "utf8");
+const metaForBundle = JSON.parse(fs.readFileSync(path.join(OUT, "collections-meta.json"), "utf8"));
+fs.writeFileSync(path.join(genDir, "collections-meta.json"), JSON.stringify(metaForBundle), "utf8");
 console.log("generated lib/generated/*.json for bundle");

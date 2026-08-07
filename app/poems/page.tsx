@@ -1,26 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
-import type { CollectionMeta, Poem, PoemMeta, PoetryIndex } from "@/lib/types";
+import type { CollectionMeta, PoetryIndex } from "@/lib/types";
 
-const PAGE = 120;
+type ResultItem = { id: string; title: string; author: string; collection: string; text: string };
+type ApiResult = { total: number; page: number; size: number; items: ResultItem[] };
 
-let indexPromise: Promise<PoetryIndex> | null = null;
-let allPromise: Promise<Poem[]> | null = null;
-function getIndexData() {
-  if (!indexPromise) indexPromise = fetch("/data/index.json").then((r) => r.json());
-  return indexPromise;
-}
-// [LETTER-POETRY-PLAN-001#5] 全文检索改拉构建期生成的 full.json（单请求精简全集，替代 12 个 collection 并发拉取）
-async function getAllPoems() {
-  if (!allPromise) {
-    allPromise = fetch("/data/full.json").then((r) => r.json());
-  }
-  return allPromise;
-}
+const PAGE_SIZE = 50;
 
 function PoemsClient() {
   const router = useRouter();
@@ -28,16 +17,20 @@ function PoemsClient() {
   const q = params.get("q") ?? "";
   const c = params.get("c") ?? "";
 
-  const [index, setIndex] = useState<PoetryIndex | null>(null);
-  const [full, setFull] = useState<Poem[] | null>(null);
-  const [fullSearched, setFullSearched] = useState(false);
-  const [visible, setVisible] = useState(PAGE);
-  const [searchingFull, setSearchingFull] = useState(false);
+  const [cols, setCols] = useState<CollectionMeta[]>([]);
+  const [total, setTotal] = useState(0);
+  const [items, setItems] = useState<ResultItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const [input, setInput] = useState(q);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    getIndexData().then(setIndex);
+    // [LETTER-POETRY-PLAN-002#5] 选集元数据走 Assets 小文件，不打包全量
+    fetch("/data/collections-meta.json")
+      .then((r) => r.json())
+      .then((meta: PoetryIndex) => setCols(meta.collections))
+      .catch(() => setCols([]));
   }, []);
 
   useEffect(() => {
@@ -61,56 +54,32 @@ function PoemsClient() {
     timer.current = setTimeout(() => commit(v, c), 350);
   };
 
-  const collectionName = useMemo(() => {
-    if (!index) return "";
-    return index.collections.find((x) => x.key === c)?.name ?? "";
-  }, [index, c]);
-
-  const filtered = useMemo(() => {
-    if (!index) return null;
-    let list: PoemMeta[] = index.poems;
-    if (c) list = list.filter((p) => p.c === c);
-    if (q) {
-      const needle = q.trim().toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.t.toLowerCase().includes(needle) ||
-          p.a.toLowerCase().includes(needle) ||
-          p.s.toLowerCase().includes(needle) ||
-          p.r.toLowerCase().includes(needle)
-      );
-    }
-    return list;
-  }, [index, q, c]);
+  const load = useCallback(
+    async (pageNum: number, qq: string, cc: string, replace = false) => {
+      setLoading(true);
+      try {
+        const sp = new URLSearchParams({ page: String(pageNum), size: String(PAGE_SIZE) });
+        if (cc) sp.set("c", cc);
+        if (qq) sp.set("q", qq);
+        const res = await fetch(`/api/poems?${sp.toString()}`).then((r) => r.json()) as ApiResult;
+        setTotal(res.total);
+        setPage(res.page);
+        setItems((prev) => (replace ? res.items : [...prev, ...res.items]));
+      } catch {
+        /* keep previous list on failure */
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
-    if (!index || !q || fullSearched) return;
-    if (filtered && filtered.length > 0) return;
-    let cancelled = false;
-    setSearchingFull(true);
-    getAllPoems()
-      .then((all) => {
-        if (cancelled) return;
-        const needle = q.trim().toLowerCase();
-        const hits = all.filter(
-          (p) =>
-            p.p.some((line) => line.toLowerCase().includes(needle)) ||
-            p.t.toLowerCase().includes(needle) ||
-            p.a.toLowerCase().includes(needle)
-        );
-        setFull(hits);
-        setFullSearched(true);
-      })
-      .finally(() => !cancelled && setSearchingFull(false));
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, q, filtered]);
+    setItems([]);
+    load(1, q, c, true);
+  }, [q, c, load]);
 
-  const shown = (fullSearched ? full : filtered) ?? [];
-  const pageList = shown.slice(0, visible);
-  const loading = !index || (q && searchingFull);
+  const colName = cols.find((x) => x.key === c)?.short ?? "";
 
   return (
     <>
@@ -119,14 +88,14 @@ function PoemsClient() {
         <section className="portal-hero">
           <div className="portal-kicker"><span className="blue">{"//"}</span> SEARCH / 诗文检索</div>
           <h1>检索一首诗，<br />想起一句话。</h1>
-          <p>按标题、作者或诗句检索全部 {index?.total.toLocaleString() ?? "……"} 篇诗文；标题无匹配时自动进入全文检索。</p>
+          <p>按标题、作者或诗句检索全库；服务端检索，无需下载全量数据。</p>
           <div className="portal-search">
             <input value={input} onChange={(e) => onInput(e.target.value)} placeholder="搜索诗句、标题或作者…" aria-label="搜索诗文" />
             <span className="portal-search-icon">⌕</span>
           </div>
           <div className="portal-cats">
             <button className={`portal-cat ${c === "" ? "active" : ""}`} onClick={() => commit(q, "")}>全部</button>
-            {index?.collections.map((col) => (
+            {cols.map((col) => (
               <button key={col.key} className={`portal-cat ${c === col.key ? "active" : ""}`} onClick={() => commit(q, col.key)}>
                 {col.name}
               </button>
@@ -135,33 +104,35 @@ function PoemsClient() {
         </section>
 
         <section className="section" style={{ minHeight: 320 }}>
-          {loading && <p className="portal-empty">正在检索…</p>}
-          {!loading && shown.length === 0 && (
+          {loading && items.length === 0 && <p className="portal-empty">正在检索…</p>}
+          {!loading && items.length === 0 && (
             <p className="portal-empty">没有匹配的结果，换一个关键词试试。</p>
           )}
-          {!loading && shown.length > 0 && (
+          {items.length > 0 && (
             <>
               <div className="eyebrow" style={{ marginBottom: 18 }}>
-                <span className="blue">{"//"}</span> {shown.length} RESULTS
-                {fullSearched && <span style={{ color: "var(--cyan)" }}> · 全文检索</span>}
+                <span className="blue">{"//"}</span> {total.toLocaleString()} RESULTS
+                {colName && <span style={{ color: "var(--cyan)" }}> · {colName}</span>}
               </div>
               <div className="poem-list">
-                {pageList.map((p) => (
+                {items.map((p) => (
                   <Link key={p.id} href={`/poem/${p.id}`} className="poem-row">
                     <div className="poem-row-main">
-                      <h3>{p.t || "（无题）"}</h3>
-                      <p className="poem-row-first">{"p" in p && (p as Poem).p?.[0] ? (p as Poem).p[0] : ""}</p>
+                      <h3>{p.title || "（无题）"}</h3>
+                      <p className="poem-row-first">{p.text.split("\n")[0] ?? ""}</p>
                     </div>
                     <div className="poem-row-meta">
-                      <span>{p.a || "佚名"}</span>
-                      <span className="terminal">{index?.collections.find((x) => x.key === p.c)?.short ?? p.c}</span>
+                      <span>{p.author || "佚名"}</span>
+                      <span className="terminal">{cols.find((x) => x.key === p.collection)?.short ?? p.collection}</span>
                     </div>
                   </Link>
                 ))}
               </div>
-              {pageList.length < shown.length && (
+              {items.length < total && (
                 <div className="hero-actions" style={{ marginTop: 30 }}>
-                  <button className="button" onClick={() => setVisible((v) => v + PAGE)}>加载更多 ↓</button>
+                  <button className="button" onClick={() => load(page + 1, q, c)} disabled={loading}>
+                    {loading ? "加载中…" : "加载更多 ↓"}
+                  </button>
                 </div>
               )}
             </>

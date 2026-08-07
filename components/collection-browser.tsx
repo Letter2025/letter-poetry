@@ -1,46 +1,84 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-export type Row = { id: string; t: string; a: string; s: string; first: string };
+type Row = { id: string; title: string; author: string; text: string };
+type ApiResult = { total: number; page: number; size: number; items: Row[] };
 
-const PAGE = 150;
+const PAGE_SIZE = 50;
 
-export function CollectionBrowser({ collectionKey, name, poems }: { collectionKey: string; name: string; poems: Row[] }) {
+// [LETTER-POETRY-PLAN-002#5] 选集浏览：客户端分页调 /api/poems?c=，不再打包整集 JSON
+export function CollectionBrowser({ collectionKey, name }: { collectionKey: string; name: string }) {
   const [q, setQ] = useState("");
-  const [visible, setVisible] = useState(PAGE);
-  const filtered = useMemo(() => {
-    if (!q) return poems;
-    const n = q.trim().toLowerCase();
-    return poems.filter((p) => p.t.toLowerCase().includes(n) || p.a.toLowerCase().includes(n) || p.first.toLowerCase().includes(n));
-  }, [poems, q]);
-  const pageList = filtered.slice(0, visible);
+  const [items, setItems] = useState<Row[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(
+    async (pageNum: number, qq: string, replace: boolean) => {
+      setLoading(true);
+      try {
+        const sp = new URLSearchParams({ c: collectionKey, page: String(pageNum), size: String(PAGE_SIZE) });
+        if (qq) sp.set("q", qq);
+        const res = await fetch(`/api/poems?${sp.toString()}`).then((r) => r.json()) as ApiResult;
+        setTotal(res.total);
+        setPage(res.page);
+        setItems((prev) => (replace ? res.items : [...prev, ...res.items]));
+      } catch {
+        /* keep previous */
+      } finally {
+        setLoading(false);
+      }
+    },
+    [collectionKey]
+  );
+
+  useEffect(() => {
+    setItems([]);
+    load(1, "", true);
+  }, [collectionKey, load]);
 
   return (
     <>
       <div className="portal-search" style={{ marginBottom: 26 }}>
-        <input value={q} onChange={(e) => { setQ(e.target.value); setVisible(PAGE); }} placeholder={`在《${name}》中检索…`} aria-label={`检索${name}`} />
+        <input
+          value={q}
+          onChange={(e) => {
+            const v = e.target.value;
+            setQ(v);
+            setItems([]);
+            load(1, v, true);
+          }}
+          placeholder={`在《${name}》中检索…`}
+          aria-label={`检索${name}`}
+        />
         <span className="portal-search-icon">⌕</span>
       </div>
+      <div className="eyebrow" style={{ marginBottom: 18 }}>
+        <span className="blue">{"//"}</span> {total.toLocaleString()} RESULTS
+      </div>
       <div className="poem-list">
-        {pageList.map((p) => (
+        {items.map((p) => (
           <Link key={p.id} href={`/poem/${p.id}`} className="poem-row">
             <div className="poem-row-main">
-              <h3>{p.t || "（无题）"}</h3>
-              <p className="poem-row-first">{p.first}</p>
+              <h3>{p.title || "（无题）"}</h3>
+              <p className="poem-row-first">{p.text.split("\n")[0] ?? ""}</p>
             </div>
             <div className="poem-row-meta">
-              <span>{p.a || "佚名"}</span>
-              {p.s && <span className="terminal">{p.s}</span>}
+              <span>{p.author || "佚名"}</span>
+              <span className="terminal">{p.id}</span>
             </div>
           </Link>
         ))}
       </div>
-      {filtered.length === 0 && <p className="portal-empty">没有匹配的篇目。</p>}
-      {pageList.length < filtered.length && (
+      {!loading && items.length === 0 && <p className="portal-empty">没有匹配的篇目。</p>}
+      {items.length < total && (
         <div className="hero-actions" style={{ marginTop: 30 }}>
-          <button className="button" onClick={() => setVisible((v) => v + PAGE)}>加载更多 ↓</button>
+          <button className="button" onClick={() => load(page + 1, q, false)} disabled={loading}>
+            {loading ? "加载中…" : "加载更多 ↓"}
+          </button>
         </div>
       )}
     </>

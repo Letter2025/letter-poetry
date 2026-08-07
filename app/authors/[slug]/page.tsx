@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AuthorPoems } from "@/components/author-poems";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
-import { getAuthor, getAuthors, getCollection, getCollections } from "@/lib/poetry";
+import { getAuthor } from "@/lib/poetry";
+import { getAuthorPoems } from "@/lib/db";
 
-export const dynamicParams = false;
+// [LETTER-POETRY-PLAN-002#5] 作者页：动态渲染，首屏服务端查 D1，加载更多走 /api/poems?author=
+export const dynamic = "force-dynamic";
 
-export function generateStaticParams() {
-  // [LETTER-POETRY-PLAN-001#4] slug 直接用作者名（Next 自动 URL 编码；作者名已确认无特殊字符）
-  return getAuthors().map((a) => ({ slug: a.name }));
-}
-
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const name = params.slug;
   const author = getAuthor(name);
   if (!author) return { title: "未找到" };
@@ -28,21 +25,11 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   };
 }
 
-export default function AuthorPage({ params }: { params: { slug: string } }) {
+export default async function AuthorPage({ params }: { params: { slug: string } }) {
   const name = params.slug;
   const author = getAuthor(name);
   if (!author) notFound();
-  const colShort = Object.fromEntries(getCollections().map((c) => [c.key, c.short]));
-  const rows = author.ids
-    .map((id) => {
-      const key = id.split("-")[0];
-      const poem = getCollection(key).find((x) => x.id === id);
-      return poem
-        ? { id: poem.id, t: poem.t, a: poem.a, first: poem.p[0] ?? "", short: colShort[poem.c] ?? poem.c }
-        : null;
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null);
-
+  const first = await getAuthorPoems(name, 1, 100);
   return (
     <>
       <SiteHeader />
@@ -50,22 +37,10 @@ export default function AuthorPage({ params }: { params: { slug: string } }) {
         <section className="portal-hero">
           <div className="portal-kicker"><span className="blue">{"//"}</span> AUTHOR / 作者</div>
           <h1>{name}</h1>
-          <p>收录 {rows.length} 篇作品。</p>
+          <p>收录 {author.ids.length} 篇作品。</p>
         </section>
         <section className="section" style={{ borderBottom: 0 }}>
-          <div className="poem-list">
-            {rows.map((p) => (
-              <Link key={p.id} href={`/poem/${p.id}`} className="poem-row">
-                <div className="poem-row-main">
-                  <h3>{p.t || "（无题）"}</h3>
-                  <p className="poem-row-first">{p.first}</p>
-                </div>
-                <div className="poem-row-meta">
-                  <span className="terminal">{p.short}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <AuthorPoems name={name} initial={first.items} total={first.total} />
         </section>
       </main>
       <SiteFooter />

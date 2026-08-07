@@ -1,0 +1,12 @@
+-- [LETTER-POETRY-PLAN-002] D1 schema
+CREATE TABLE IF NOT EXISTS poems (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  author TEXT NOT NULL DEFAULT '',
+  collection TEXT NOT NULL,
+  rhythmic TEXT NOT NULL DEFAULT '',
+  section TEXT NOT NULL DEFAULT '',
+  text TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  tr TEXT NOT NULL DEFAULT ''
+);

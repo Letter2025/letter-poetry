@@ -1,25 +1,19 @@
-import indexJson from "./generated/index.json";
-import collectionsJson from "./generated/collections.json";
+import metaJson from "./generated/collections-meta.json";
 import mengxueJson from "./generated/mengxue.json";
 import authorsJson from "./generated/authors.json";
-import type { Author, CollectionMeta, MengxueDoc, Poem, PoetryIndex } from "./types";
+import type { Author, CollectionMeta, MengxueDoc, PoetryIndex } from "./types";
 
+// [LETTER-POETRY-PLAN-002] 构建期小元数据（bundle）；正文/诗目数据在 D1，通过 lib/db.ts 查询
 export function getIndex(): PoetryIndex {
-  return indexJson as PoetryIndex;
+  return metaJson as PoetryIndex;
 }
 
 export function getCollections(): CollectionMeta[] {
-  return indexJson.collections as CollectionMeta[];
+  return metaJson.collections as CollectionMeta[];
 }
 
-export function getCollection(key: string): Poem[] {
-  return (collectionsJson as Record<string, Poem[]>)[key] ?? [];
-}
-
-export function getPoem(id: string): Poem | null {
-  const key = id.split("-")[0];
-  const list = getCollection(key);
-  return list.find((p) => p.id === id) ?? null;
+export function getCollectionMeta(key: string): CollectionMeta | undefined {
+  return getCollections().find((c) => c.key === key);
 }
 
 export function getMengxue(): MengxueDoc[] {
@@ -30,7 +24,6 @@ export function getMengxueDoc(id: string): MengxueDoc | null {
   return getMengxue().find((d) => d.id === id) ?? null;
 }
 
-// [LETTER-POETRY-PLAN-001#4] 作者聚合（/authors 与 /authors/[slug] 用）
 export function getAuthors(): Author[] {
   return authorsJson as Author[];
 }

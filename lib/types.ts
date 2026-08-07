@@ -16,11 +16,11 @@ export type CollectionMeta = {
   count: number;
 };
 
+// [LETTER-POETRY-PLAN-002] 索引元数据：仅选集与总量，正文/诗目在 D1 与服务端 API
 export type PoetryIndex = {
   generatedAt: string;
   total: number;
   collections: CollectionMeta[];
-  poems: PoemMeta[];
 };
 
 export type Poem = PoemMeta & {
@@ -41,4 +41,16 @@ export type MengxueDoc = {
 export type Author = {
   name: string;
   ids: string[];
+};
+// [LETTER-POETRY-PLAN-002] D1 数据行类型（客户端/服务端共用，避免客户端触碰 cloudflare:workers）
+export type PoemRow = {
+  id: string;
+  title: string;
+  author: string;
+  collection: string;
+  rhythmic: string;
+  section: string;
+  text: string;
+  notes: string;
+  tr: string;
 };

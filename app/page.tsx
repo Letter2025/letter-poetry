@@ -1,23 +1,11 @@
 import Link from "next/link";
 import { DailyPoem } from "@/components/daily-poem";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
-import { getIndex, getMengxue, getPoem } from "@/lib/poetry";
+import { getIndex, getMengxue } from "@/lib/poetry";
 
 export default function Home() {
   const index = getIndex();
   const mengxue = getMengxue();
-  const today = new Date();
-  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-  const dailyMeta = index.poems[seed % index.poems.length];
-  const daily = getPoem(dailyMeta.id) ?? {
-    id: dailyMeta.id,
-    t: dailyMeta.t,
-    a: dailyMeta.a,
-    c: dailyMeta.c,
-    r: dailyMeta.r,
-    s: dailyMeta.s,
-    p: ["……"],
-  };
   const guwenCount = mengxue.filter((d) => d.id.startsWith("guwen-")).length;
   const classics = mengxue.filter((d) => !d.id.startsWith("guwen-"));
 
@@ -41,14 +29,14 @@ export default function Home() {
         </section>
 
         <section className="section">
-          <DailyPoem initial={daily} />
+          <DailyPoem />
         </section>
 
         <section className="section">
           <div className="section-head">
             <div>
               <div className="eyebrow"><span className="blue">{"//"}</span> COLLECTIONS / 诗文选集</div>
-              <h2 className="section-title">十二部选集，<br />从源头读起。</h2>
+              <h2 className="section-title">{index.collections.length} 部选集，<br />从源头读起。</h2>
             </div>
             <Link className="button" href="/poems">全部诗文 →</Link>
           </div>
@@ -58,7 +46,7 @@ export default function Home() {
                 <div className="portal-body">
                   <div className="portal-meta">
                     <span className="portal-cat-name">{String(i + 1).padStart(2, "0")} / {c.dynasty}</span>
-                    <span className="portal-status">{c.count} 篇</span>
+                    <span className="portal-status">{c.count.toLocaleString()} 篇</span>
                   </div>
                   <h3>{c.name}</h3>
                   <p>{c.desc}</p>
