@@ -33,6 +33,7 @@ function ensureWasm(): Promise<void> {
 }
 
 export async function GET(_req: Request, { params }: { params: { id: string } }): Promise<Response> {
+  try {
   const row = await getPoemRow(params.id);
   if (!row) return new Response("not found", { status: 404 });
   const col = getCollectionMeta(row.collection);
@@ -93,4 +94,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       "Cache-Control": "public, max-age=3600, s-maxage=86400",
     },
   });
+  } catch (err) {
+    console.error("[og] render error", err);
+    return new Response("og error: " + (err instanceof Error ? err.message : String(err)), { status: 500 });
+  }
 }
