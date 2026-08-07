@@ -81,6 +81,8 @@ export async function POST(req: Request) {
         ],
         max_tokens: 1024,
         temperature: 0.7,
+        // [LETTER-POETRY-PLAN-010] glm-4.7-flash 默认思考模式会耗尽 max_tokens 导致 content 为空，必须禁用
+        thinking: { type: "disabled" },
       }),
     });
 

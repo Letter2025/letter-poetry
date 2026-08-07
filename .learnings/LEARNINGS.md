@@ -19,6 +19,7 @@
 2026-08-07 | 数据驱动页面 | 作者页/收藏页/全文检索均改为构建期生成数据（authors.json/full.json），避免运行时计算与多请求拉取
 2026-08-07 | PowerShell 中文传输 | @'...'@ | node - 会损坏中文（变 ?）；涉及中文的脚本一律 WriteAllText 写临时文件再执行
 2026-08-07 | AI 接入（智谱 GLM） | glm-4.7-flash 实测可用（open.bigmodel.cn/api/paas/v4/chat/completions，OpenAI 兼容）；key 只存 wrangler secret（put ZHIPU_API_KEY），代码读 env.ZHIPU_API_KEY；route 必须 force-dynamic + no-store（响应含用户输入，不进 CDN 缓存）；前端纯文本渲染防注入
+2026-08-07 | 智谱 glm-4.7-flash 思考模式 | 默认启用 reasoning，max_tokens=1024 会被思考内容占满 → finish_reason=length 且 content 为空（线上曾返回「AI 返回为空」）；必须传 thinking:{type:"disabled"} 才直接输出 content，且更省 token（实测同题 624 vs 1522+）
 ## ARCHITECTURE-2026-08-07（架构升级）
 - D1 rows_written 免费 10 万/天，按「行 + 索引」计费：普通 INSERT 1 行 + 主键索引 1 = 2/首；多列索引 4/首；FTS5 ≈5/首 → 中文搜索不能建 FTS，用 LIKE（D1 端执行不占 Worker CPU，3 万行 2ms）。
 - D1 不支持 SQL BEGIN/COMMIT（用 API 事务）；单条语句长度 <54KB（按 40KB 字节分批）。
