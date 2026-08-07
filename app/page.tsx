@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DailyPoem } from "@/components/daily-poem";
 import { SeasonPick } from "@/components/season-pick";
+import { QuickExplain } from "@/components/quick-explain";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
 import { getIndex, getMengxue } from "@/lib/poetry";
 
@@ -35,6 +36,16 @@ export default function Home() {
 
         <section className="section" style={{ borderBottom: 0 }}>
           <SeasonPick />
+        </section>
+
+        <section className="section">
+          <div className="section-head">
+            <div>
+              <div className="eyebrow"><span className="blue">{"//"}</span> AI QUICK / 贴句速解</div>
+              <h2 className="section-title">贴一句诗，<br />一句话读懂。</h2>
+            </div>
+          </div>
+          <QuickExplain />
         </section>
 
         <section className="section">

@@ -30,6 +30,8 @@ export function SiteHeader() {
           <Link href="/mengxue" onClick={close}>蒙学</Link>
           <Link href="/favorites" onClick={close}>收藏</Link>
           <Link href="/themes" onClick={close}>策展</Link>
+          <Link href="/feihua" onClick={close}>飞花令</Link>
+          <Link href="/quiz" onClick={close}>风格自测</Link>
           <a href={portal} target="_blank" rel="noreferrer">门户 ↗</a>
           <a href={github} target="_blank" rel="noreferrer">GitHub ↗</a>
         </nav>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
+import { AiCreate } from "@/components/ai-create";
 import { getThemes } from "@/lib/poetry";
 
 export const metadata: Metadata = {
@@ -56,6 +57,16 @@ export default function ThemesPage() {
           <div className="curation-grid">
             {themes.map((g) => <GroupCard key={g.slug} {...g} />)}
           </div>
+        </section>
+
+        <section className="section" style={{ borderBottom: 0 }}>
+          <div className="section-head">
+            <div>
+              <div className="eyebrow"><span className="blue">{"//"}</span> AI CREATE / 即兴创作</div>
+              <h2 className="section-title">藏头字，<br />或一个主题。</h2>
+            </div>
+          </div>
+          <AiCreate />
         </section>
       </main>
       <SiteFooter />

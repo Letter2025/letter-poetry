@@ -16,6 +16,8 @@
 | `app/favorites/` | 本机收藏（localStorage + API 批量取） |
 | `app/api/poems/route.ts` | 列表/检索 API（c/q/author/ids/page/size） |
 | `app/api/ai/route.ts` | AI 解析/问答代理（POST，智谱 GLM，Key 在 Secret） |
+| `app/feihua/` `app/quiz/` | AI 玩法页：飞花令 / 风格自测 |
+| `components/ai-panel.tsx` 等 | 详情页 AI 面板 + 5 个 AI 玩法组件（sign-card/quick-explain/ai-create/feihua/style-quiz） |
 | `app/api/poem/[id]|daily|random` | 详情 / 每日一诗 / 随机 API |
 | `lib/db.ts` | **D1 访问层**（server component / route handler 用 `env.DB`） |
 | `lib/poetry.ts` | 构建期小元数据（选集/蒙学/作者） |
@@ -77,7 +79,8 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 ### AI 研读（三级回退链）
 
 - `lib/llm.ts`：`generateWithFallback({system,user})` 三级回退链 —— ① 智谱模型池 `glm-4.7-flash,glm-4-flash-250414`（thinking disabled）→ ② SiliconFlow `THUDM/GLM-Z1-9B-0414,tencent/Hunyuan-MT-7B`（需 `SILICONFLOW_API_KEY`，缺 key 自动跳过）→ ③ Cloudflare Workers AI `@cf/openai/gpt-oss-20b` 兜底；每模型指数退避重试 ≤2 次。
-- `app/api/ai/route.ts`：`POST /api/ai` 服务端代理（`mode=explain|ask`），有 `id` 时从 D1 取诗文，输入限制 question ≤300 字 / text ≤2000 字（长诗截断）；返回 `{ content, provider }`。
+- `app/api/ai/route.ts`：`POST /api/ai` 服务端代理，`mode` 支持 7 种：`explain|ask`（详情页解析/询问）、`sign`（今日诗签）、`create`（藏头/命题作诗）、`feihua`（飞花令）、`quiz`（风格自测）、`quick`（贴句速解）；有 `id` 时从 D1 取诗文；输入限制 question ≤300 / extra ≤500 / text ≤2000（quick 200）；返回 `{ content, provider }`。
+- 客户端统一调用 `lib/use-ai.ts` 的 `callAi({ mode, id?, text?, question?, extra? })`；各玩法组件见 `components/`。
 - **Key 只存 Cloudflare Secret**（`ZHIPU_API_KEY` / `SILICONFLOW_API_KEY`，用 `wrangler secret bulk` 设置避免管道换行），代码只读 env，绝不写死 / 进 git / 前端。
 - Workers AI binding：`vite.config.ts` 加 `ai: { binding: "AI" }`（免费 10K neurons/天，仅兜底）。
 - `components/ai-panel.tsx`：详情页 AI 面板（解析 + 询问），客户端渲染（curl 验证不到）；结果 `white-space: pre-line` 纯文本渲染（无 markdown）。
