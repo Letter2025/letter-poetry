@@ -1,7 +1,14 @@
-// [LETTER-POETRY-PLAN-004] 动态 OG 分享卡片图：查 D1 渲染每首诗卡片（标题/作者/首句）
-import { ImageResponse } from "@vercel/og";
+// [LETTER-POETRY-PLAN-004] 动态 OG 分享卡片图：satori（SVG）+ @resvg/resvg-wasm（PNG，静态导入适配 Workers）
+import satori from "satori";
+import { Resvg, initWasm } from "@resvg/resvg-wasm";
+import resvgWasmModule from "@resvg/resvg-wasm/index_bg.wasm?module";
 import { getPoemRow } from "@/lib/db";
 import { getCollectionMeta } from "@/lib/poetry";
+
+declare module "*.wasm?module" {
+  const mod: WebAssembly.Module;
+  export default mod;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +25,21 @@ function loadFont(): Promise<ArrayBuffer | null> {
   return fontPromise;
 }
 
+// resvg-wasm 静态导入：Workers 禁止动态编译 WASM，必须用编译好的 Module 初始化
+let wasmPromise: Promise<void> | null = null;
+function ensureWasm(): Promise<void> {
+  if (!wasmPromise) wasmPromise = initWasm(resvgWasmModule);
+  return wasmPromise;
+}
+
 export async function GET(_req: Request, { params }: { params: { id: string } }): Promise<Response> {
   const row = await getPoemRow(params.id);
   if (!row) return new Response("not found", { status: 404 });
   const col = getCollectionMeta(row.collection);
   const lines = row.text.split("\n").filter(Boolean).slice(0, 4);
-  const font = await loadFont();
+  const [font] = await Promise.all([loadFont(), ensureWasm()]);
 
-  const image = new ImageResponse(
+  const svg = await satori(
     (
       <div
         style={{
@@ -61,19 +75,22 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "#687181", fontSize: 24 }}>
           <span>poetry.myletter.top</span>
-          <span style={{ fontFamily: undefined, color: "#687181" }}>{row.id}</span>
+          <span>{row.id}</span>
         </div>
       </div>
     ),
     {
       width: 1200,
       height: 630,
-      fonts: font ? [{ name: "Noto Sans SC", data: font, weight: 400 }] : [],
+      fonts: font ? [{ name: "Noto Sans SC", data: font, weight: 400, style: "normal" }] : [],
     }
   );
 
-  const res = new Response(image.body, image);
-  res.headers.set("Content-Type", "image/png");
-  res.headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
-  return res;
+  const png = new Resvg(svg, { fitTo: { mode: "width", value: 1200 } }).render().asPng();
+  return new Response(png, {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=3600, s-maxage=86400",
+    },
+  });
 }
