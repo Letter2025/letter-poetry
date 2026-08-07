@@ -1,57 +1,115 @@
-# Letter Poetry · 古典诗文档案
+# Letter Poetry · Classical Chinese Poetry Archive
 
-[poetry.myletter.top](https://poetry.myletter.top) — 可检索、可细读、可收藏的在线诗文集，Letter Network 站点之一。
+> A searchable, readable, collectible archive of classical Chinese poetry — Tang and Song verse, the Book of Songs, Chu Ci, Yuan opera and more.
 
-## 内容范围
+**Live site:** https://poetry.myletter.top · **Part of Letter Network** · **GitHub:** https://github.com/Letter2025/letter-poetry
+**Icon:** https://poetry.myletter.top/favicon-64.png
 
-| 选集 | 数量 | 说明 |
-|------|------|------|
-| 唐诗三百首 | ~320 篇 | 蘅塘退士编选的经典唐诗选本 |
-| 千家诗 | ~220 篇 | 蒙学诗选 |
-| 宋词三百首 | 280 篇 | 朱孝臧选编 |
-| 诗经 | 305 篇 | 风雅颂全收 |
-| 楚辞 | 65 篇 | 含《离骚》全篇 |
-| 元曲 | 1200 首精选 | 关汉卿、马致远等大家代表作 |
-| 花间集 | ~500 首 | 中国第一部文人词总集 |
-| 南唐二主词 | 45 首 | 李璟、李煜词作，附注释 |
-| 纳兰性德 | ~260 首 | 纳兰词全集 |
-| 曹操诗集 | 26 首 | 建安风骨 |
-| 水墨唐诗 | 176 首 | 附白话译文 |
-| 幽梦影 | 219 则 | 清言小品 |
-| 蒙学 | 231 篇 | 三字经、百家姓、千字文、古文观止等 |
+## Why This Project
 
-## 功能
+Classical Chinese poetry is a shared cultural inheritance, but most online collections are cluttered, ad-heavy or hard to search. This archive rebuilds the reading experience around the text itself: clean typography, full-text search, notes and vernacular translations, and per-poem stable URLs — everything bundled at build time so the site is fast and needs no external API at runtime. It is the literary wing of Letter.
 
-- 首页每日一诗、随机一首、十二部选集入口
-- 全库检索：标题 / 作者 / 诗句，自动进入全文检索
-- 诗文详情：正文、注释、白话译文、上一篇 / 下一篇、复制全文
-- 蒙学经典长文阅读
-- 深色模式、响应式布局、SEO（每篇独立页面 + sitemap + JSON-LD）
+## What “Letter” Means
 
-## 技术栈
+Letter is the unified personal brand and the collective noun for this set of knowledge assets. Poetry is the oldest form of "letter" — words written to be read across centuries. This site keeps those words readable, searchable and beautiful.
 
-- Next.js 16 App Router + vinext，部署为 Cloudflare Workers（OpenNext 风格）
-- 数据构建：`scripts/build-data.mjs` 从 [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) 原始 JSON 生成精简数据
-- 繁转简：`chinese-conv`
-- 全部数据随构建打包进 Worker bundle，运行时无需外部 API
+## Features
 
-## 本地开发
+- **Daily poem & random** — a poem a day and one-click random reading.
+- **13 collections** — Tang Poems 300 (~320), Thousand Family Poems (~220), Song Ci 300 (280), Book of Songs (305), Chu Ci (65), Yuan Opera (1,200 selected), Huajian Ji (~500), Southern Tang rulers' ci (45), Nalan Xingde (~260), Cao Cao (26), Ink-wash Tang poems (176), Youmeng Ying (219), Mengxue primers (231).
+- **Full-text search** — by title, author or verse, falling back to full-text.
+- **Detail pages** — original text, notes, vernacular translation, prev/next navigation and copy-to-clipboard.
+- **Mengxue reading** — long-form primers (Three Character Classic, Hundred Family Surnames, Thousand Character Classic, Guwen Guanzhi…).
+- **Dark mode & responsive** — shared Letter design tokens.
+- **SEO** — per-poem pages, sitemap and JSON-LD structured data.
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router) + vinext, deployed as a Cloudflare Worker
+- **Data build:** `scripts/build-data.mjs` compiles raw JSON from [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) into a compact bundle
+- **Conversion:** `chinese-conv` (traditional → simplified)
+- **Runtime:** zero external API — all data ships inside the Worker bundle
+- **CI/CD:** GitHub Actions → `cloudflare/wrangler-action@v3`
+
+## Directory Structure
+
+```text
+app/
+  page.tsx          # Home: daily poem, random, collections
+  poems/            # Poem list + detail
+  poem/  collections/  # Collection browsing
+  mengxue/          # Long-form primer reading
+  sitemap.ts  robots.ts  # SEO
+  globals.css       # Letter design tokens
+components/
+  daily-poem.tsx  collection-browser.tsx  poem-actions.tsx  chrome.tsx
+lib/                # Data loading / search helpers
+scripts/
+  build-data.mjs    # Compiles data from ../cf-poetry-data (or committed data)
+public/  worker/  build/
+.github/workflows/deploy.yml  # CI deployment
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 22+
+
+### Install
 
 ```bash
 npm install
-npm run build-data   # 从 ../cf-poetry-data 生成数据（数据源缺失时沿用已提交数据）
+```
+
+### Build data (optional)
+
+```bash
+npm run build-data   # compiles from ../cf-poetry-data; falls back to committed data
+```
+
+### Develop
+
+```bash
 npm run dev
 ```
 
-## 部署
+### Build
+
+```bash
+npm run build
+```
+
+## Deployment (Cloudflare Workers)
+
+GitHub Actions (`.github/workflows/deploy.yml`) runs on push to `main`:
+
+1. `npm ci` + `npm run build`
+2. `wrangler deploy --config dist/server/wrangler.json --name letter-poetry`
+
+Manual equivalent:
 
 ```bash
 npm run build
 npx wrangler deploy --config dist/server/wrangler.json --name letter-poetry
 ```
 
-GitHub Actions（`.github/workflows/deploy.yml`）在 push 到 main 时自动部署，需要仓库 Secrets：`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`。
+Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. The Worker is bound to **poetry.myletter.top**.
 
-## 数据许可
+## Configuration & Environment Variables
 
-文本数据来自 [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry)（MIT License），文本以原始古籍为准。
+No runtime environment variables are required; all text data is bundled at build time.
+
+## Data License
+
+Text data comes from [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) (MIT License); the text follows the original classical sources.
+
+## License
+
+No license file is included in this repository; all rights reserved by default. Please contact the author before reusing content.
+
+## Acknowledgements
+
+- Part of the Letter Network family with shared design tokens.
+- Poetry data: [chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) (MIT).
+- Built on [Next.js](https://nextjs.org) and [vinext](https://github.com/cloudflare/vinext).
