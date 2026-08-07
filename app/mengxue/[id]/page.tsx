@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PoemText } from "@/components/poem-text";
+import { TtsControl } from "@/components/tts-control";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
 import { getMengxue, getMengxueDoc } from "@/lib/poetry";
 
@@ -45,6 +46,9 @@ export default function MengxueDetailPage({ params }: { params: { id: string } }
           <h1 className="poem-title">{doc.title}</h1>
           <div className="poem-byline"><span>{doc.author}</span></div>
           <PoemText lines={doc.paragraphs} className="mengxue-text" />
+          <div style={{ display: "flex", justifyContent: "center", margin: "24px 0" }}>
+            <TtsControl text={`${doc.title}，${doc.author}。${doc.paragraphs.join("")}`} />
+          </div>
           <div className="poem-nav">
             <Link className="button" href="/mengxue">← 返回蒙学</Link>
           </div>

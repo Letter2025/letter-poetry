@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PoemActions } from "@/components/poem-actions";
 import { PoemText } from "@/components/poem-text";
+import { TtsControl } from "@/components/tts-control";
 import { SiteFooter, SiteHeader } from "@/components/chrome";
 import { getCollectionMeta } from "@/lib/poetry";
 import { getPoemRow } from "@/lib/db";
@@ -76,6 +77,7 @@ export default async function PoemDetailPage({ params }: { params: { id: string 
           </div>
           <PoemText lines={lines} className="poem-text" lineClass="verse-line" />
           <PoemActions id={row.id} text={row.text} title={`${row.title} · ${row.author || "佚名"}`} />
+          <TtsControl text={`${row.title}，${row.author || "佚名"}。${row.text}`} />
           {row.tr && (
             <div className="poem-note">
               <div className="eyebrow"><span className="blue">{"//"}</span> 白话译文</div>

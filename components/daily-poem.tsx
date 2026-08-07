@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import * as OpenCC from "opencc-js";
 import { useScript } from "@/lib/script";
+import { TtsControl } from "@/components/tts-control";
 import type { PoemRow } from "@/lib/types";
 
 // [LETTER-POETRY-PLAN-002#5] 简体 → 繁体转换器
@@ -71,6 +72,7 @@ export function DailyPoem() {
       </div>
       <div className="daily-foot">
         <Link className="button solid" href={`/poem/${poem.id}`}>读全文 →</Link>
+        <TtsControl compact text={`${poem.title}，${poem.author || "佚名"}。${poem.text}`} />
         <span className="terminal">{poem.id}</span>
       </div>
     </div>
