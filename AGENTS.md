@@ -57,6 +57,12 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 - 字体：Noto Sans SC ttf（satori 不支持 woff2）运行时加载 + 模块缓存。
 - 记住：Workers 禁止动态编译 WASM，resvg 必须 `?module` 静态导入；不要用 @vercel/og（其 resvg 运行时加载 wasm 在 Workers 失效）。
 
+### 策展（主题/季节）
+
+- `lib/generated/themes.json` + `public/data/themes.json`：4 季节 + 6 主题（67 篇精选，静态提交）；`scripts/build-themes.mjs` 连 D1 按标题+作者匹配真实 id 重新生成。
+- 页面：`/themes` 总览、`/themes/[slug]`（按 ids 查 D1）、首页 `SeasonPick` 当季推荐（客户端按月选季节）。
+- 精选只取库内诗（无宋诗/全宋词）；新增策展改 themes.json + 脚本重跑。
+
 ### 拼音注音
 
 - `components/annotated.tsx`（AnnotatedText）：全文注音模式（ruby/rt）+ 悬停 title 拼音 + 点击发声（SpeechSynthesis）；pinyin-pro 即时算（字符与拼音 1:1），繁简兼容。详情页/蒙学正文使用。

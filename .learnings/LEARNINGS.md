@@ -46,3 +46,8 @@
 - pinyin-pro `pinyin(text, {type:'array', toneType:'symbol'})`：字符与拼音 1:1（标点原样），多音字按语境，繁体字读音正确（裏=lǐ、髮=fà）。
 - AnnotatedText：全文注音模式（ruby/rt）+ 悬停 title 拼音 + 点击 SpeechSynthesis 发声；繁简兼容（opencc 先转再注音）。
 - 经验：判断线上是否部署新代码前先确认该 commit 的 CI run（per_page=1 可能拿到旧 run）；部署传播有 ~1 分钟延迟；详情页被 worker/CDN 缓存，新功能验证用 `?x=` 参数绕过。
+## CURATION-2026-08-07（主题/季节策展）
+- themes.json：4 季节 + 6 主题（67 篇精选），脚本 scripts/build-themes.mjs 连 D1 按 title LIKE + author 匹配真实 id；静态提交（lib/generated + public/data）。
+- 局限：库内无宋诗/全宋词/陶渊明，精选只取库内（唐诗+12选集）。
+- 首页当季推荐 SeasonPick：客户端按月份（Asia/Shanghai）选季节，fetch themes.json + /api/poems?ids= 显示 3 首。
+- 经验：curl 输出经 PowerShell 变量 join 后 Contains 判断曾误报 False，改用保存文件 + ReadAllText 判断更可靠；CI run 判断务必核对 head_sha。
