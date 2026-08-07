@@ -38,3 +38,7 @@
 - 相关性排序 SQL：`ORDER BY CASE WHEN title LIKE 'q%' THEN 0 WHEN title LIKE '%q%' THEN 1 WHEN author LIKE '%q%' THEN 2 ELSE 3 END, id`。
 - 前端高亮：Highlight 组件（split + <mark>，非正则安全；React 自动转义）。
 - 经验：主域名 /api 可能命中 CDN 旧缓存（no-store 也偶发），判断新旧代码用 workers.dev 直连；客户端渲染的 mark 用 curl 看不到，需浏览器或 React renderToStaticMarkup 验证。
+## TTS-2026-08-07（浏览器朗读）
+- SpeechSynthesis：`speak/pause/resume/cancel` + `getVoices()` 过滤 zh + `rate`；单条 utterance 有长度限制 → splitText 按标点切分为 ≤200 字片段逐个入队。
+- 客户端组件 SSR 返回 null（`typeof window` 检查），curl 看不到控件属正常；验证用 esbuild 编译真实组件 + mock window/speechSynthesis + React 渲染。
+- 零服务器额度；云端 TTS（Workers AI MeloTTS）作后续增强。
