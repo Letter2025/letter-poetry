@@ -42,3 +42,7 @@
 - SpeechSynthesis：`speak/pause/resume/cancel` + `getVoices()` 过滤 zh + `rate`；单条 utterance 有长度限制 → splitText 按标点切分为 ≤200 字片段逐个入队。
 - 客户端组件 SSR 返回 null（`typeof window` 检查），curl 看不到控件属正常；验证用 esbuild 编译真实组件 + mock window/speechSynthesis + React 渲染。
 - 零服务器额度；云端 TTS（Workers AI MeloTTS）作后续增强。
+## PINYIN-2026-08-07（拼音注音）
+- pinyin-pro `pinyin(text, {type:'array', toneType:'symbol'})`：字符与拼音 1:1（标点原样），多音字按语境，繁体字读音正确（裏=lǐ、髮=fà）。
+- AnnotatedText：全文注音模式（ruby/rt）+ 悬停 title 拼音 + 点击 SpeechSynthesis 发声；繁简兼容（opencc 先转再注音）。
+- 经验：判断线上是否部署新代码前先确认该 commit 的 CI run（per_page=1 可能拿到旧 run）；部署传播有 ~1 分钟延迟；详情页被 worker/CDN 缓存，新功能验证用 `?x=` 参数绕过。

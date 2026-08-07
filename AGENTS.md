@@ -57,6 +57,11 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 - 字体：Noto Sans SC ttf（satori 不支持 woff2）运行时加载 + 模块缓存。
 - 记住：Workers 禁止动态编译 WASM，resvg 必须 `?module` 静态导入；不要用 @vercel/og（其 resvg 运行时加载 wasm 在 Workers 失效）。
 
+### 拼音注音
+
+- `components/annotated.tsx`（AnnotatedText）：全文注音模式（ruby/rt）+ 悬停 title 拼音 + 点击发声（SpeechSynthesis）；pinyin-pro 即时算（字符与拼音 1:1），繁简兼容。详情页/蒙学正文使用。
+- 零数据库改动；多音字按现代读音（古诗破读需小规则覆盖，可选）。
+
 ### TTS 朗读
 
 - `components/tts-control.tsx`：浏览器 SpeechSynthesis（中文语音、语速、分段 ≤200 字）；详情页/每日一诗（compact）/蒙学接入。
