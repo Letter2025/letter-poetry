@@ -7,12 +7,12 @@ import { getAuthor, getAuthors, getCollection, getCollections } from "@/lib/poet
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  // [LETTER-POETRY-PLAN-001#4] slug 用 encodeURIComponent，规避作者名中的特殊字符
-  return getAuthors().map((a) => ({ slug: encodeURIComponent(a.name) }));
+  // [LETTER-POETRY-PLAN-001#4] slug 直接用作者名（Next 自动 URL 编码；作者名已确认无特殊字符）
+  return getAuthors().map((a) => ({ slug: a.name }));
 }
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const name = decodeURIComponent(params.slug);
+  const name = params.slug;
   const author = getAuthor(name);
   if (!author) return { title: "未找到" };
   return {
@@ -29,7 +29,7 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
 }
 
 export default function AuthorPage({ params }: { params: { slug: string } }) {
-  const name = decodeURIComponent(params.slug);
+  const name = params.slug;
   const author = getAuthor(name);
   if (!author) notFound();
   const colShort = Object.fromEntries(getCollections().map((c) => [c.key, c.short]));

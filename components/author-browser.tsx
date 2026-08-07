@@ -29,7 +29,7 @@ export function AuthorBrowser({ authors }: { authors: AuthorRow[] }) {
       {filtered.length === 0 && <p className="portal-empty">没有匹配的作者。</p>}
       <div className="author-grid">
         {shown.map((a) => (
-          <Link key={a.name} href={`/authors/${encodeURIComponent(a.name)}`} className="author-card">
+          <Link key={a.name} href={`/authors/${a.name}`} className="author-card">
             <h3>{a.name}</h3>
             <p>{a.count} 篇</p>
           </Link>
