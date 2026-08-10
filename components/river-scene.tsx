@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type * as THREE from "three";
 
-// [LETTER-POETRY-PLAN-013] 诗河：四万七千余首真实诗作化作河灯，沿朝代之河从《诗经》源头流向明清。
+// [LETTER-POETRY-PLAN-013] 诗河 v2：四万七千余首真实诗作化作河灯，沿朝代之河从《诗经》源头流向明清。
 // 全部自研（three.js MIT），仅借鉴诗云「星图漫游」交互概念，不引入其源码/字库/数据。
+// v2 修复：① 河灯加大 + UnrealBloom 泛光（原 2px 暗点不可见）；② 新增「水流光带」铺出河形；③ 名人诗作金色大灯；④ raycaster threshold 放大修点击。
 
 type RiverPoem = { id: string; t: string; a: string; c: string };
 
@@ -27,6 +28,19 @@ const DYNASTY_COLOR: Record<string, string> = {
   唐: "#ffd9a0", 五代: "#ffad68", 宋: "#78a9ff",
   元: "#c65d22", 明: "#b9c3d4", 清: "#e6edf3",
 };
+
+// 名人名单（其诗作渲染为更大的金色河灯，成为河上「亮星」）
+const FAMOUS = new Set([
+  "李白", "杜甫", "白居易", "王维", "孟浩然", "李商隐", "杜牧", "王昌龄", "高适", "岑参",
+  "韩愈", "柳宗元", "刘禹锡", "元稹", "李贺", "贾岛", "孟郊", "张九龄", "陈子昂", "王勃",
+  "骆宾王", "卢照邻", "杨炯", "贺知章", "王之涣", "王翰", "王湾", "崔颢", "李益", "张继",
+  "韦应物", "刘长卿", "钱起", "常建", "祖咏", "储光羲", "韩翃", "司空曙", "李端", "卢纶",
+  "张籍", "王建", "顾况", "张祜", "许浑", "温庭筠", "郑谷", "罗隐", "韦庄", "杜荀鹤",
+  "鱼玄机", "薛涛", "皎然", "齐己", "寒山", "苏轼", "辛弃疾", "李清照", "柳永", "晏殊",
+  "晏几道", "欧阳修", "王安石", "陆游", "杨万里", "范成大", "秦观", "黄庭坚", "周邦彦", "姜夔",
+  "岳飞", "文天祥", "屈原", "曹操", "曹植", "谢灵运", "鲍照", "庾信", "李煜", "冯延巳",
+  "纳兰性德", "马致远", "关汉卿", "白朴", "张养浩", "王实甫",
+]);
 
 // 河道：XZ 平面一条蜿蜒曲线（先秦在左源，明清在右海）
 const CURVE_POINTS: Array<[number, number, number]> = [
@@ -95,6 +109,9 @@ export default function RiverScene() {
 
       const THREE = await import("three");
       const { OrbitControls } = await import("three/examples/jsm/controls/OrbitControls.js");
+      const { EffectComposer } = await import("three/examples/jsm/postprocessing/EffectComposer.js");
+      const { RenderPass } = await import("three/examples/jsm/postprocessing/RenderPass.js");
+      const { UnrealBloomPass } = await import("three/examples/jsm/postprocessing/UnrealBloomPass.js");
       if (disposed) return;
 
       let renderer: THREE.WebGLRenderer;
@@ -113,57 +130,34 @@ export default function RiverScene() {
       mount.appendChild(renderer.domElement);
 
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x080d14);
+      scene.background = new THREE.Color(0x060a12);
 
       const camera = new THREE.PerspectiveCamera(55, mount.clientWidth / Math.max(1, mount.clientHeight), 0.1, 3000);
-      camera.position.set(-210, 130, 90);
+      // 初始视角：斜俯视，整条河在对角线展开
+      camera.position.set(-70, 128, 210);
+      camera.lookAt(0, 4, 0);
 
       const controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = !reduced;
       controls.dampingFactor = 0.08;
-      controls.minDistance = 8;
-      controls.maxDistance = 520;
+      controls.minDistance = 12;
+      controls.maxDistance = 620;
       controls.maxPolarAngle = Math.PI * 0.53;
-      controls.target.set(0, 0, 0);
+      controls.target.set(0, 4, 0);
 
       const curve = new THREE.CatmullRomCurve3(
         CURVE_POINTS.map((p) => new THREE.Vector3(p[0], p[1], p[2])),
         false, "centripetal", 0.5
       );
 
-      // ---- 河灯（47,629 个 Points）----
-      const positions = new Float32Array(poems.length * 3);
-      const colors = new Float32Array(poems.length * 3);
-      const poemPointMap = new Map<string, THREE.Vector3>();
-      const segLen = 1 / DYNASTIES.length;
-      const tmpColor = new THREE.Color();
-      const dynArr = DYNASTIES as readonly string[];
-      for (let i = 0; i < poems.length; i++) {
-        const id = poems[i].id;
-        const d = dynastyOf(poems[i].c);
-        const seg = Math.max(0, dynArr.indexOf(d));
-        const t = seg / DYNASTIES.length + hash01(id, 1) * segLen;
-        const pt = curve.getPointAt(t);
-        const tan = curve.getTangentAt(t);
-        const side = (hash01(id, 2) - 0.5) * 3.4;
-        const y = (hash01(id, 3) - 0.5) * 0.8 + 0.5;
-        const x = pt.x + -tan.z * side;
-        const z = pt.z + tan.x * side;
-        positions[i * 3] = x; positions[i * 3 + 1] = y; positions[i * 3 + 2] = z;
-        tmpColor.set(DYNASTY_COLOR[d] ?? "#e6edf3");
-        const bright = 0.55 + 0.5 * hash01(id, 4);
-        colors[i * 3] = tmpColor.r * bright; colors[i * 3 + 1] = tmpColor.g * bright; colors[i * 3 + 2] = tmpColor.b * bright;
-        poemPointMap.set(id, new THREE.Vector3(x, y, z));
-      }
-
-      // 圆光纹理（Canvas 径向渐变）
+      // ---- 圆光纹理（Canvas 径向渐变，柔和光点）----
       const makeGlowTexture = () => {
         const c = document.createElement("canvas");
         c.width = 64; c.height = 64;
         const ctx = c.getContext("2d")!;
         const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
         g.addColorStop(0, "rgba(255,255,255,1)");
-        g.addColorStop(0.25, "rgba(255,255,255,0.85)");
+        g.addColorStop(0.3, "rgba(255,255,255,0.7)");
         g.addColorStop(1, "rgba(255,255,255,0)");
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, 64, 64);
@@ -171,20 +165,96 @@ export default function RiverScene() {
         tex.needsUpdate = true;
         return tex;
       };
-
       const glowTex = makeGlowTexture();
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-      geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-      const mat = new THREE.PointsMaterial({
-        size: 0.62, map: glowTex, vertexColors: true, transparent: true,
+
+      // ---- 水流光带：沿河均匀铺点，让「河」的形状始终可见 ----
+      const WATER_N = reduced ? 900 : 2400;
+      const waterPos = new Float32Array(WATER_N * 3);
+      const waterCol = new Float32Array(WATER_N * 3);
+      const waterTmp = new THREE.Color("#9db8dd");
+      for (let i = 0; i < WATER_N; i++) {
+        const t = i / WATER_N;
+        const pt = curve.getPointAt(t);
+        const tan = curve.getTangentAt(t);
+        const side = (hash01("w" + i, 11) - 0.5) * 3.6;
+        waterPos[i * 3] = pt.x + -tan.z * side;
+        waterPos[i * 3 + 1] = (hash01("w" + i, 12) - 0.5) * 0.5;
+        waterPos[i * 3 + 2] = pt.z + tan.x * side;
+        const b = 0.35 + 0.35 * hash01("w" + i, 13);
+        waterCol[i * 3] = waterTmp.r * b; waterCol[i * 3 + 1] = waterTmp.g * b; waterCol[i * 3 + 2] = waterTmp.b * b;
+      }
+      const waterGeo = new THREE.BufferGeometry();
+      waterGeo.setAttribute("position", new THREE.BufferAttribute(waterPos, 3));
+      waterGeo.setAttribute("color", new THREE.BufferAttribute(waterCol, 3));
+      const waterMat = new THREE.PointsMaterial({
+        size: 0.55, map: glowTex, vertexColors: true, transparent: true,
+        depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, opacity: 0.9,
+      });
+      const waterPoints = new THREE.Points(waterGeo, waterMat);
+      scene.add(waterPoints);
+
+      // ---- 河灯：47,629 首真实诗（朝代等分 9 段，段内按 id 哈希散布）；名人诗作金色大灯 ----
+      const normalPos = [] as number[];
+      const normalCol = [] as number[];
+      const famousPos = [] as number[];
+      const famousCol = [] as number[];
+      const poemPointMap = new Map<string, THREE.Vector3>();
+      const segLen = 1 / DYNASTIES.length;
+      const dynArr = DYNASTIES as readonly string[];
+      const tmpColor = new THREE.Color();
+      const goldColor = new THREE.Color("#ffd9a0");
+      for (let i = 0; i < poems.length; i++) {
+        const id = poems[i].id;
+        const a = poems[i].a;
+        const d = dynastyOf(poems[i].c);
+        const seg = Math.max(0, dynArr.indexOf(d));
+        const t = seg / DYNASTIES.length + hash01(id, 1) * segLen;
+        const pt = curve.getPointAt(t);
+        const tan = curve.getTangentAt(t);
+        const side = (hash01(id, 2) - 0.5) * 3.8;
+        const y = (hash01(id, 3) - 0.5) * 0.9 + 0.5;
+        const x = pt.x + -tan.z * side;
+        const z = pt.z + tan.x * side;
+        poemPointMap.set(id, new THREE.Vector3(x, y, z));
+        const famous = FAMOUS.has(a);
+        const arr = famous ? famousPos : normalPos;
+        arr.push(x, y, z);
+        if (famous) {
+          tmpColor.copy(goldColor);
+          const b = 0.8 + 0.2 * hash01(id, 4);
+          arr.push(tmpColor.r * b, tmpColor.g * b, tmpColor.b * b);
+        } else {
+          tmpColor.set(DYNASTY_COLOR[d] ?? "#e6edf3");
+          const b = 0.55 + 0.45 * hash01(id, 4);
+          arr.push(tmpColor.r * b, tmpColor.g * b, tmpColor.b * b);
+        }
+      }
+      const makeLampGeo = (pos: number[]) => {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(pos), 3));
+        return g;
+      };
+      const normalGeo = makeLampGeo(normalPos);
+      const normalColAttr = new THREE.BufferAttribute(new Float32Array(normalCol), 3);
+      normalGeo.setAttribute("color", normalColAttr);
+      const normalMat = new THREE.PointsMaterial({
+        size: 1.7, map: glowTex, vertexColors: true, transparent: true,
         depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true,
       });
-      const points = new THREE.Points(geom, mat);
-      scene.add(points);
+      const normalPoints = new THREE.Points(normalGeo, normalMat);
+      scene.add(normalPoints);
+
+      const famousGeo = makeLampGeo(famousPos);
+      famousGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(famousCol), 3));
+      const famousMat = new THREE.PointsMaterial({
+        size: 2.9, map: glowTex, vertexColors: true, transparent: true,
+        depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true,
+      });
+      const famousPoints = new THREE.Points(famousGeo, famousMat);
+      scene.add(famousPoints);
 
       // ---- 背景星野 ----
-      const bgCount = reduced ? 900 : 2200;
+      const bgCount = reduced ? 700 : 1800;
       const bgGeo = new THREE.BufferGeometry();
       const bgPos = new Float32Array(bgCount * 3);
       for (let i = 0; i < bgCount; i++) {
@@ -196,7 +266,7 @@ export default function RiverScene() {
         bgPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
       }
       bgGeo.setAttribute("position", new THREE.BufferAttribute(bgPos, 3));
-      const bgMat = new THREE.PointsMaterial({ size: 0.9, color: 0x9fb4d0, transparent: true, opacity: 0.6, depthWrite: false });
+      const bgMat = new THREE.PointsMaterial({ size: 0.9, color: 0x9fb4d0, transparent: true, opacity: 0.5, depthWrite: false });
       const bgStars = new THREE.Points(bgGeo, bgMat);
       scene.add(bgStars);
 
@@ -214,8 +284,8 @@ export default function RiverScene() {
         g2.scale(scale, scale);
         g2.font = font;
         g2.textBaseline = "middle";
-        g2.shadowColor = "rgba(0,0,0,0.8)";
-        g2.shadowBlur = 8;
+        g2.shadowColor = "rgba(0,0,0,0.9)";
+        g2.shadowBlur = 10;
         g2.fillStyle = color;
         g2.fillText(text, 12, 48);
         const tex = new THREE.CanvasTexture(c);
@@ -232,24 +302,35 @@ export default function RiverScene() {
         const t = (i + 0.5) / DYNASTIES.length;
         const pt = curve.getPointAt(t);
         const color = DYNASTY_COLOR[d] ?? "#e6edf3";
-        const g = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, opacity: 0.85, depthWrite: false }));
-        g.scale.setScalar(7);
-        g.position.set(pt.x, 4.2, pt.z);
+        const g = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, opacity: 0.8, depthWrite: false }));
+        g.scale.setScalar(9);
+        g.position.set(pt.x, 5.4, pt.z);
         scene.add(g); glows.push(g);
         const label = makeTextSprite(d + " · " + (counts[d] ?? 0).toLocaleString(), color);
-        label.position.set(pt.x, 8.6 + (i % 2) * 2, pt.z);
+        label.position.set(pt.x, 11 + (i % 2) * 2.4, pt.z);
         scene.add(label); labels.push(label);
       }
 
-      // ---- 拾取 ----
+      // ---- 后处理：UnrealBloom 泛光（河灯发光质感）----
+      const composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+      let bloom: UnrealBloomPass | null = null;
+      if (!reduced) {
+        bloom = new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 1.15, 0.75, 0.16);
+        composer.addPass(bloom);
+      }
+
+      // ---- 拾取（threshold 放大到 3.2，点击/悬停可命中）----
       const ray = new THREE.Raycaster();
+      ray.params.Points!.threshold = 3.2;
       const pointer = new THREE.Vector2();
+      const lampTargets = [normalPoints, famousPoints];
       const pick = (clientX: number, clientY: number): RiverPoem | null => {
         const rect = renderer.domElement.getBoundingClientRect();
         pointer.x = ((clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1;
         pointer.y = -((clientY - rect.top) / Math.max(1, rect.height)) * 2 + 1;
         ray.setFromCamera(pointer, camera);
-        const hits = ray.intersectObject(points, false);
+        const hits = ray.intersectObjects(lampTargets, false);
         if (hits.length && typeof hits[0].index === "number") return poems[hits[0].index] ?? null;
         return null;
       };
@@ -284,9 +365,9 @@ export default function RiverScene() {
         flyTarget = { pos: p.clone().add(offset.multiplyScalar(dist)), target: p.clone() };
         if (reduced) { camera.position.copy(flyTarget.pos); controls.target.copy(flyTarget.target); controls.update(); }
       };
-      const flyToT = (t: number, dist = 90) => {
+      const flyToT = (t: number, dist = 110) => {
         const pt = curve.getPointAt(Math.min(1, Math.max(0, t)));
-        flyTo(pt.x, pt.y + 8, pt.z, dist);
+        flyTo(pt.x, pt.y + 10, pt.z, dist);
       };
 
       const onResize = () => {
@@ -294,6 +375,7 @@ export default function RiverScene() {
         camera.aspect = w / Math.max(1, h);
         camera.updateProjectionMatrix();
         renderer.setSize(w, h);
+        composer.setSize(w, h);
       };
       window.addEventListener("resize", onResize);
 
@@ -304,7 +386,7 @@ export default function RiverScene() {
           if (camera.position.distanceTo(flyTarget.pos) < 0.6) flyTarget = null;
         }
         controls.update();
-        renderer.render(scene, camera);
+        composer.render();
       });
 
       engine = {
@@ -321,10 +403,15 @@ export default function RiverScene() {
           renderer.domElement.removeEventListener("pointermove", onMove);
           controls.removeEventListener("start", cancelFly);
           controls.dispose();
-          geom.dispose(); mat.dispose(); glowTex.dispose();
+          waterGeo.dispose(); waterMat.dispose();
+          normalGeo.dispose(); normalMat.dispose();
+          famousGeo.dispose(); famousMat.dispose();
+          glowTex.dispose();
           bgGeo.dispose(); bgMat.dispose();
           for (const l of labels) { l.material.dispose(); l.material.map?.dispose(); }
           for (const g of glows) { g.material.dispose(); g.material.map?.dispose(); }
+          bloom?.dispose();
+          composer.dispose();
           renderer.dispose();
           renderer.domElement.remove();
         },
@@ -344,15 +431,15 @@ export default function RiverScene() {
     const e = engineRef.current; if (!e) return;
     const seg = (DYNASTIES as readonly string[]).indexOf(dynasty);
     if (seg < 0) return;
-    e.flyToT((seg + 0.5) / DYNASTIES.length, 90);
+    e.flyToT((seg + 0.5) / DYNASTIES.length, 110);
   };
-  const goStart = () => engineRef.current?.flyToT(0, 90);
-  const goEnd = () => engineRef.current?.flyToT(1, 90);
+  const goStart = () => engineRef.current?.flyToT(0, 120);
+  const goEnd = () => engineRef.current?.flyToT(1, 120);
   const goRandom = () => {
     const e = engineRef.current; if (!e) return;
     const p = e.randomPoem(); if (!p) return;
     const pt = e.poemPoint(p.id);
-    if (pt) e.flyTo(pt.x, pt.y, pt.z, 46);
+    if (pt) e.flyTo(pt.x, pt.y, pt.z, 50);
     setSelected(p);
     setHovered(p);
   };
