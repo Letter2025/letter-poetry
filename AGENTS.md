@@ -17,6 +17,7 @@
 | `app/api/poems/route.ts` | 列表/检索 API（c/q/author/ids/page/size） |
 | `app/api/ai/route.ts` | AI 解析/问答代理（POST，智谱 GLM，Key 在 Secret） |
 | `app/feihua/` `app/quiz/` | AI 玩法页：飞花令 / 风格自测 |
+| `app/river/` `components/river-scene.tsx` | 诗河三维漫游（three.js 客户端渲染，47,629 首真实诗作化作河灯） |
 | `components/ai-panel.tsx` 等 | 详情页 AI 面板 + 5 个 AI 玩法组件（sign-card/quick-explain/ai-create/feihua/style-quiz） |
 | `app/api/poem/[id]|daily|random` | 详情 / 每日一诗 / 随机 API |
 | `lib/db.ts` | **D1 访问层**（server component / route handler 用 `env.DB`） |

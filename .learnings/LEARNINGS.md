@@ -24,6 +24,7 @@
 2026-08-07 | Workers AI gpt-oss-20b 响应格式 | env.AI.run(@cf/openai/gpt-oss-20b) 返回 OpenAI 兼容格式 {choices:[{message:{content}}]}，不是 {response}（letter-ask 的 res.response 假设会拿空）；解析需 choices[0].message.content 优先、response 兜底；REST 实测 success=True、约 6 neurons/次（10K/天免费）
 2026-08-07 | 硅基流动链路启用 | SILICONFLOW_API_KEY 已配置（wrangler secret bulk）；实测回退链 zhipu 失效 → siliconflow:THUDM/GLM-Z1-9B-0414 正常返回 1862 字；GLM-Z1 思考型首 token 慢（5-6s），max_tokens 已给 4096；智谱多分支并发易限流时硅基流动是关键备选
 2026-08-07 | AI 玩诗 5 功能（PLAN-012） | /api/ai 扩展 7 mode（explain/ask/sign/create/feihua/quiz/quick），各 mode 独立 system 提示词 + 输入组装 + 长度限制；前端 lib/use-ai.ts 统一 callAi；今日诗签/贴句速解在首页，藏头命题在 /themes，飞花令 /feihua、风格自测 /quiz 独立页；全部复用三级回退链
+2026-08-10 | 诗河三维漫游（PLAN-013） | /river 沉浸页：three.js 动态 import 只进客户端 chunk（three.module 724KB，服务端 bundle 不含）；river.json 由 build-data 生成并提交（CI 无数据源沿用）；灯位用 id 哈希确定性生成免服务端坐标；Points 47,629 点击 Raycaster O(n) 可接受；WebGL 不可用 try/catch 降级；部署后边缘缓存传播有延迟（首次 404/旧主页属正常，等几分钟或 ?cb= 验证）
 ## ARCHITECTURE-2026-08-07（架构升级）
 - D1 rows_written 免费 10 万/天，按「行 + 索引」计费：普通 INSERT 1 行 + 主键索引 1 = 2/首；多列索引 4/首；FTS5 ≈5/首 → 中文搜索不能建 FTS，用 LIKE（D1 端执行不占 Worker CPU，3 万行 2ms）。
 - D1 不支持 SQL BEGIN/COMMIT（用 API 事务）；单条语句长度 <54KB（按 40KB 字节分批）。
@@ -58,3 +59,11 @@
 - 局限：库内无宋诗/全宋词/陶渊明，精选只取库内（唐诗+12选集）。
 - 首页当季推荐 SeasonPick：客户端按月份（Asia/Shanghai）选季节，fetch themes.json + /api/poems?ids= 显示 3 首。
 - 经验：curl 输出经 PowerShell 变量 join 后 Contains 判断曾误报 False，改用保存文件 + ReadAllText 判断更可靠；CI run 判断务必核对 head_sha。
+
+## RIVER-2026-08-10（诗河三维漫游）
+- 架构：`app/river/page.tsx`（server shell + metadata）+ `components/river-scene.tsx`（client）；three 用动态 import（`await import("three")` + OrbitControls），打包成独立 chunk `three.module-*.js` 724KB，仅 /river 客户端加载；SSR 输出 loading 占位（`.river-root`），hydrate 后 fetch river.json。
+- 数据：build-data.mjs 生成 `public/data/river.json`（{id,t,a,c} × 47,629，4.1MB，静态资源 Content-Type application/json，完整 GET 200；Workers Assets 不支持 Range（range 请求 404）但本项目全量下载无需 Range）。
+- 视觉：朝代 9 段等分曲线 t 区间（先秦→战国→汉末→唐→五代→宋→元→明→清），段内诗按 id 哈希散布（FNV-1a），河面宽度/波光/亮度均哈希派生 → 确定性灯位；全唐诗段密度最高 = 盛唐最亮。
+- 交互：OrbitControls + pointerdown/up 距离阈值判点击（避免拖拽误触）；Raycaster 拾取 47,629 Points 单次 O(n) 可接受；hover 节流 150ms；飞行用 camera/controls.target lerp，用户拖拽即取消。
+- 经验：部署后边缘缓存传播有延迟（首次 /river 404、主页旧版无新入口按钮，几分钟后恢复）；验证新部署用 `?cb=` cache-buster；PowerShell `$home` 是保留变量（$HOME），命名变量须避开。
+- 下一步候选：赠答弧线（诗题解析）、简化格律生成器（虚空彩蛋，自研算法）、GPU color-id picking（若 hover 卡顿）。

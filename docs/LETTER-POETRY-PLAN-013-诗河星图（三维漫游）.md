@@ -1,6 +1,6 @@
 # LETTER-POETRY-PLAN-013-诗河星图（三维漫游）
 
-> 计划状态：⏳ 进行中 ｜ 创建日期：2026-08-10 ｜ 目标：新增 `/river` 三维「诗河」页面，把 47,629 首真实诗化作河灯，沿朝代之河从《诗经》源头流向明清（「君不见黄河之水天上来」）
+> 计划状态：✅ 全部完成 ｜ 创建日期：2026-08-10 ｜ 完成日期：2026-08-10 ｜ 目标：新增 `/river` 三维「诗河」页面，把 47,629 首真实诗化作河灯，沿朝代之河从《诗经》源头流向明清（「君不见黄河之水天上来」）
 
 ## 一、背景
 
@@ -25,22 +25,22 @@
 ### 新建
 | 文件 | 说明 | 状态 |
 |---|---|---|
-| `docs/LETTER-POETRY-PLAN-013-诗河星图（三维漫游）.md` | 本计划 | ⏳ |
-| `app/river/page.tsx` | 诗河页（server：metadata + Header + Scene + Footer） | ⏳ |
-| `components/river-scene.tsx` | 诗河 3D 场景（client，three.js） | ⏳ |
-| `tests/river-data.test.mjs` | river.json 冒烟测试（数量/字段/id 唯一） | ⏳ |
+| `docs/LETTER-POETRY-PLAN-013-诗河星图（三维漫游）.md` | 本计划 | ✅ |
+| `app/river/page.tsx` | 诗河页（server：metadata + Header + Scene + Footer） | ✅ |
+| `components/river-scene.tsx` | 诗河 3D 场景（client，three.js） | ✅ |
+| `tests/river-data.test.mjs` | river.json 冒烟测试（数量/字段/id 唯一） | ✅ |
 
 ### 修改
 | 文件 | 说明 | 状态 |
 |---|---|---|
-| `scripts/build-data.mjs` | 追加生成 river.json | ⏳ |
-| `public/data/river.json` | 构建产物（提交，CI 沿用） | ⏳ |
-| `components/chrome.tsx` | 导航加「诗河」 | ⏳ |
-| `app/page.tsx` | 首页加入口卡 | ⏳ |
-| `app/globals.css` | 诗河样式段（复用设计令牌） | ⏳ |
-| `package.json` / `package-lock.json` | 新增 three / @types/three | ⏳ |
-| `AGENTS.md` | 目录结构 / 开发规则补充 | ⏳ |
-| `.learnings/LEARNINGS.md` | 沉淀 | ⏳ |
+| `scripts/build-data.mjs` | 追加生成 river.json | ✅ |
+| `public/data/river.json` | 构建产物（提交，CI 沿用） | ✅ |
+| `components/chrome.tsx` | 导航加「诗河」 | ✅ |
+| `app/page.tsx` | 首页加入口卡 | ✅ |
+| `app/globals.css` | 诗河样式段（复用设计令牌） | ✅ |
+| `package.json` / `package-lock.json` | 新增 three / @types/three | ✅ |
+| `AGENTS.md` | 目录结构 / 开发规则补充 | ✅ |
+| `.learnings/LEARNINGS.md` | 沉淀 | ✅ |
 
 ## 四、实施顺序
 
@@ -60,3 +60,4 @@
 ## 六、变更记录
 
 - 2026-08-10：创建计划，开始实施。
+- 2026-08-10：实现完成并上线（CI 部署 poetry.myletter.top/river，SSR/静态资源/入口均验证通过），收尾 AGENTS.md + LEARNINGS。
