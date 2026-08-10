@@ -23,7 +23,11 @@ export default function Home() {
             <input name="q" placeholder="搜索诗句、标题或作者，如「明月」「李白」「春晓」…" aria-label="搜索诗文" />
             <span className="portal-search-icon">⌕</span>
           </form>
-          <div className="stats" style={{ marginTop: 30 }}>
+          <div style={{ marginTop: 26, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link className="button solid" href="/river">进入诗河 →</Link>
+            <Link className="button dark" href="/poems">全部诗文</Link>
+          </div>
+<div className="stats" style={{ marginTop: 30 }}>
             <div className="stat"><strong>{index.collections.length}</strong><span>诗文选集</span></div>
             <div className="stat"><strong>{index.total.toLocaleString()}</strong><span>篇目</span></div>
             <div className="stat"><strong>{mengxue.length.toLocaleString()}</strong><span>蒙学篇目</span></div>

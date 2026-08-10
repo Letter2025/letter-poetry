@@ -29,7 +29,7 @@ export function SiteHeader() {
           <Link href="/authors" onClick={close}>作者</Link>
           <Link href="/mengxue" onClick={close}>蒙学</Link>
           <Link href="/favorites" onClick={close}>收藏</Link>
-          <Link href="/themes" onClick={close}>策展</Link>
+          <Link href="/themes" onClick={close}>策展</Link>`n          <Link href="/river" onClick={close}>诗河</Link>
           <Link href="/feihua" onClick={close}>飞花令</Link>
           <Link href="/quiz" onClick={close}>风格自测</Link>
           <a href={portal} target="_blank" rel="noreferrer">门户 ↗</a>

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2",
+    "@types/three": "^0.185.4",
     "chinese-conv": "^4.0.0",
     "cron-parser": "^5.7.0",
     "crypto-js": "^4.2.0",
@@ -25,7 +26,8 @@
     "pinyin-pro": "^3.28.2",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "satori": "^0.29.0"
+    "satori": "^0.29.0",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",

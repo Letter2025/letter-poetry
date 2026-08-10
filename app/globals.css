@@ -278,3 +278,42 @@ ruby rt { font-size: 0.48em; color: var(--muted); letter-spacing: 0; }
 .quiz-option:hover { border-color: var(--blue); }
 .quiz-option.active { border-color: var(--blue); background: var(--bluewash); color: var(--blue); }
 @media (max-width: 780px) { .quiz-options { flex-direction: column; align-items: stretch; } }
+/* === River / 诗河（三维漫游，PLAN-013） === */
+.river-root { position: fixed; inset: 0; overflow: hidden; background: #080d14; color: #e6edf3; font-family: Inter,"Noto Sans SC","Microsoft YaHei",Arial,sans-serif; }
+.river-canvas { position: absolute; inset: 0; }
+.river-canvas canvas { display: block; }
+.river-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; }
+.river-loading-inner { font: 600 13px ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: .1em; color: #97a3b3; }
+.river-hud { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.river-hud > * { pointer-events: auto; }
+.river-top { position: absolute; top: 18px; left: 22px; right: 22px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.river-brand { display: flex; flex-direction: column; gap: 2px; }
+.river-brand-name { font-weight: 800; letter-spacing: -.03em; font-size: 15px; color: #e6edf3; }
+.river-brand-sub { font: 500 10px ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: .14em; color: #97a3b3; text-transform: uppercase; }
+.river-ready { display: inline-flex; align-items: center; gap: 8px; font: 600 11px ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: .08em; color: #97a3b3; background: rgba(13,17,23,.55); border: 1px solid rgba(230,237,243,.16); padding: 6px 10px; }
+.river-ready .pulse { background: #45c4b0; }
+.river-legend { position: absolute; left: 22px; bottom: 26px; display: flex; flex-wrap: wrap; gap: 6px; max-width: 56vw; }
+.river-chip { display: inline-flex; align-items: center; gap: 6px; color: #e6edf3; background: rgba(13,17,23,.6); border: 1px solid rgba(230,237,243,.22); padding: 4px 9px; font: 500 11px ui-monospace,SFMono-Regular,Consolas,monospace; cursor: pointer; transition: border-color .18s, background .18s; }
+.river-chip:hover { border-color: rgba(230,237,243,.6); background: rgba(19,25,34,.9); }
+.river-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.river-controls { position: absolute; right: 22px; bottom: 26px; display: flex; gap: 8px; }
+.river-btn { color: #e6edf3; background: rgba(13,17,23,.6); border: 1px solid rgba(230,237,243,.22); padding: 7px 13px; font-size: 13px; font-weight: 700; cursor: pointer; transition: border-color .18s, background .18s; }
+.river-btn:hover { border-color: rgba(230,237,243,.6); background: rgba(19,25,34,.9); }
+.river-card { position: absolute; right: 22px; bottom: 84px; width: 300px; background: rgba(19,25,34,.92); border: 1px solid rgba(230,237,243,.2); padding: 16px 18px; }
+.river-card h2 { margin: 8px 0 2px; font-size: 22px; letter-spacing: -.04em; color: #e6edf3; }
+.river-card-author { margin: 0 0 10px; color: #97a3b3; font-size: 14px; }
+.river-card .tags { margin-bottom: 14px; }
+.river-card .tag { border-color: rgba(230,237,243,.25); color: #b9c3d4; }
+.river-card .button { border-color: #78a9ff; color: #78a9ff; }
+.river-card .button:hover { background: #78a9ff; color: #0d1117; }
+.river-card--err { position: static; width: 420px; max-width: 90vw; }
+.river-card--err p { color: #97a3b3; font-size: 14px; }
+.river-card-close { position: absolute; top: -14px; right: -14px; width: 30px; height: 30px; border: 1px solid rgba(230,237,243,.3); background: #131922; color: #e6edf3; font-size: 16px; cursor: pointer; }
+.river-hint { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); font: 500 11px ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: .04em; color: rgba(230,237,243,.5); white-space: nowrap; }
+@media (max-width: 780px) {
+  .river-legend { max-width: 94vw; left: 12px; bottom: 96px; }
+  .river-controls { left: 12px; right: auto; bottom: 12px; flex-wrap: wrap; }
+  .river-card { left: 12px; right: 12px; width: auto; bottom: 150px; }
+  .river-hint { display: none; }
+  .river-top { left: 12px; right: 12px; top: 12px; }
+}

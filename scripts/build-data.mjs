@@ -361,6 +361,12 @@ for (const p of poems) {
 const authors = [...authorMap.values()].sort((x, y) => x.name.localeCompare(y.name, "zh-Hans-CN"));
 fs.writeFileSync(path.join(OUT, "authors.json"), JSON.stringify(authors), "utf8");
 console.log("authors.json:", authors.length, "authors");
+
+// [LETTER-POETRY-PLAN-013#2] 诗河数据：全量诗目轻量清单（id/标题/作者/选集），供 /river 三维「诗河」场景使用
+// 注意：本文件提交进仓库，CI 无数据源时沿用（build-data 顶部已处理 SRC 缺失分支）
+const river = poems.map((p) => ({ id: p.id, t: p.t, a: p.a, c: p.c }));
+fs.writeFileSync(path.join(OUT, "river.json"), JSON.stringify(river), "utf8");
+console.log("river.json:", river.length, "poems");
 // [LETTER-POETRY-PLAN-001#1] 静态 RSS（避免依赖 route handler）
 const mengxueDocsForRss = JSON.parse(fs.readFileSync(path.join(OUT, "mengxue.json"), "utf8"));
 fs.writeFileSync(path.join(ROOT, "public", "rss.xml"), buildRss(index, mengxueDocsForRss), "utf8");
