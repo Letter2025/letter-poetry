@@ -67,3 +67,8 @@
 - 交互：OrbitControls + pointerdown/up 距离阈值判点击（避免拖拽误触）；Raycaster 拾取 47,629 Points 单次 O(n) 可接受；hover 节流 150ms；飞行用 camera/controls.target lerp，用户拖拽即取消。
 - 经验：部署后边缘缓存传播有延迟（首次 /river 404、主页旧版无新入口按钮，几分钟后恢复）；验证新部署用 `?cb=` cache-buster；PowerShell `$home` 是保留变量（$HOME），命名变量须避开。
 - 下一步候选：赠答弧线（诗题解析）、简化格律生成器（虚空彩蛋，自研算法）、GPU color-id picking（若 hover 卡顿）。
+## RIVER-V2V3-2026-08-10（诗河视觉迭代）
+- 首版失败根因：Points size 0.62 在相机 ~260 距离投影仅 ~2px、无 bloom、光点纹理衰减快 → 用户「看不到河灯/没有河的感觉」；raycaster threshold 默认 1 太小 → 点击基本无效。
+- 修复：① 河灯 size 3.4（名人 5.0 金色）② UnrealBloomPass(strength 1.6, radius 0.85, threshold 0.12)（EffectComposer + RenderPass）③ 水流光带 2400 点均匀铺河（size 1.1）④ 河床 TubeGeometry 半透明 additive 河面（opacity 0.55）⑤ 光点纹理径向渐变分段（0.35/0.7 控制点）让光点更实 ⑥ 相机拉近至 ~180 距离 ⑦ raycast.params.Points.threshold = 3.2 修点击。
+- 验证方法：headless Edge（executablePath msedge.exe + --use-gl=angle --enable-unsafe-swiftshader）+ screenshot 转 canvas getImageData → 16x8 亮度网格，确认亮带呈蜿蜒河形；交互用真实 mouse down/up（center 稳定命中）+ 合成 PointerEvent（hover 节流）。亮度：bright 0.5%→1.5%、mid 0.8%→4.9%。
+- 教训：three 场景「有没有渲染」≠「用户看得见」；必须用亮度分布/构图验证，不能只看无报错。合成 PointerEvent 与真实 mouse 行为不同（OrbitControls 介入真实事件），交互验证用真实 mouse。
