@@ -134,7 +134,7 @@ export default function RiverScene() {
 
       const camera = new THREE.PerspectiveCamera(55, mount.clientWidth / Math.max(1, mount.clientHeight), 0.1, 3000);
       // 初始视角：斜俯视，整条河在对角线展开
-      camera.position.set(-70, 128, 210);
+      camera.position.set(-50, 95, 150);
       camera.lookAt(0, 4, 0);
 
       const controls = new OrbitControls(camera, renderer.domElement);
@@ -157,8 +157,8 @@ export default function RiverScene() {
         const ctx = c.getContext("2d")!;
         const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
         g.addColorStop(0, "rgba(255,255,255,1)");
-        g.addColorStop(0.3, "rgba(255,255,255,0.7)");
-        g.addColorStop(1, "rgba(255,255,255,0)");
+        g.addColorStop(0.35, "rgba(255,255,255,0.85)");
+        g.addColorStop(0.7, "rgba(255,255,255,0.35)"); g.addColorStop(1, "rgba(255,255,255,0)");
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, 64, 64);
         const tex = new THREE.CanvasTexture(c);
@@ -180,18 +180,24 @@ export default function RiverScene() {
         waterPos[i * 3] = pt.x + -tan.z * side;
         waterPos[i * 3 + 1] = (hash01("w" + i, 12) - 0.5) * 0.5;
         waterPos[i * 3 + 2] = pt.z + tan.x * side;
-        const b = 0.35 + 0.35 * hash01("w" + i, 13);
+        const b = 0.5 + 0.4 * hash01("w" + i, 13);
         waterCol[i * 3] = waterTmp.r * b; waterCol[i * 3 + 1] = waterTmp.g * b; waterCol[i * 3 + 2] = waterTmp.b * b;
       }
       const waterGeo = new THREE.BufferGeometry();
       waterGeo.setAttribute("position", new THREE.BufferAttribute(waterPos, 3));
       waterGeo.setAttribute("color", new THREE.BufferAttribute(waterCol, 3));
       const waterMat = new THREE.PointsMaterial({
-        size: 0.55, map: glowTex, vertexColors: true, transparent: true,
+        size: 1.1, map: glowTex, vertexColors: true, transparent: true,
         depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, opacity: 0.9,
       });
       const waterPoints = new THREE.Points(waterGeo, waterMat);
       scene.add(waterPoints);
+      // 河床光带：半透明河面，强化「河」的蜿蜒形态
+      const tubeGeo = new THREE.TubeGeometry(curve, 220, 2.6, 8, false);
+      const tubeMat = new THREE.MeshBasicMaterial({ color: 0x1d3a5f, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+      const tube = new THREE.Mesh(tubeGeo, tubeMat);
+      tube.position.y = -0.5;
+      scene.add(tube);
 
       // ---- 河灯：47,629 首真实诗（朝代等分 9 段，段内按 id 哈希散布）；名人诗作金色大灯 ----
       const normalPos = [] as number[];
@@ -238,7 +244,7 @@ export default function RiverScene() {
       const normalColAttr = new THREE.BufferAttribute(new Float32Array(normalCol), 3);
       normalGeo.setAttribute("color", normalColAttr);
       const normalMat = new THREE.PointsMaterial({
-        size: 1.7, map: glowTex, vertexColors: true, transparent: true,
+        size: 3.4, map: glowTex, vertexColors: true, transparent: true,
         depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true,
       });
       const normalPoints = new THREE.Points(normalGeo, normalMat);
@@ -247,7 +253,7 @@ export default function RiverScene() {
       const famousGeo = makeLampGeo(famousPos);
       famousGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(famousCol), 3));
       const famousMat = new THREE.PointsMaterial({
-        size: 2.9, map: glowTex, vertexColors: true, transparent: true,
+        size: 5.0, map: glowTex, vertexColors: true, transparent: true,
         depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true,
       });
       const famousPoints = new THREE.Points(famousGeo, famousMat);
@@ -266,7 +272,7 @@ export default function RiverScene() {
         bgPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
       }
       bgGeo.setAttribute("position", new THREE.BufferAttribute(bgPos, 3));
-      const bgMat = new THREE.PointsMaterial({ size: 0.9, color: 0x9fb4d0, transparent: true, opacity: 0.5, depthWrite: false });
+      const bgMat = new THREE.PointsMaterial({ size: 0.9, color: 0x9fb4d0, transparent: true, opacity: 0.3, depthWrite: false });
       const bgStars = new THREE.Points(bgGeo, bgMat);
       scene.add(bgStars);
 
@@ -303,7 +309,7 @@ export default function RiverScene() {
         const pt = curve.getPointAt(t);
         const color = DYNASTY_COLOR[d] ?? "#e6edf3";
         const g = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, opacity: 0.8, depthWrite: false }));
-        g.scale.setScalar(9);
+        g.scale.setScalar(14);
         g.position.set(pt.x, 5.4, pt.z);
         scene.add(g); glows.push(g);
         const label = makeTextSprite(d + " · " + (counts[d] ?? 0).toLocaleString(), color);
@@ -316,7 +322,7 @@ export default function RiverScene() {
       composer.addPass(new RenderPass(scene, camera));
       let bloom: UnrealBloomPass | null = null;
       if (!reduced) {
-        bloom = new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 1.15, 0.75, 0.16);
+        bloom = new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 1.6, 0.85, 0.12);
         composer.addPass(bloom);
       }
 
@@ -403,7 +409,7 @@ export default function RiverScene() {
           renderer.domElement.removeEventListener("pointermove", onMove);
           controls.removeEventListener("start", cancelFly);
           controls.dispose();
-          waterGeo.dispose(); waterMat.dispose();
+          waterGeo.dispose(); waterMat.dispose(); tubeGeo.dispose(); tubeMat.dispose();
           normalGeo.dispose(); normalMat.dispose();
           famousGeo.dispose(); famousMat.dispose();
           glowTex.dispose();
