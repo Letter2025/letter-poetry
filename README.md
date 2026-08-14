@@ -1,3 +1,6 @@
+<!-- README-LANGUAGES: en,zh-CN,zh-TW -->
+[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
+
 # Letter Poetry · Classical Chinese Poetry Archive
 
 > A searchable, readable, collectible archive of classical Chinese poetry — Tang verse, Song lyrics, the Book of Songs, Chu Ci, Yuan opera and more.

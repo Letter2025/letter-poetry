@@ -1,3 +1,6 @@
+<!-- README-LANGUAGES: en,zh-CN,zh-TW -->
+[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
+
 # Letter Poetry · 古典詩文檔案
 
 > 可檢索、可細讀、可收藏的在線詩文集 —— 唐詩、宋詞、詩經、楚辭、元曲與蒙學經典，一處安放。
