@@ -121,6 +121,7 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 
 ### 协作注意事项
 
+- README 三语言必须带语言切换条（顶部 `<!-- README-LANGUAGES: ... -->` 标记 + 链接行，各语言互相可跳转），约定见网络开放规范 `LETTER-NETWORK-开放规范.md` §3.2；部署工作流须 `paths-ignore: README*.md` 忽略 README-only 变更。
 - 与用户交流使用中文；提交信息遵循 Conventional Commits。
 - git remote 名以 `git remote -v` 为准；remote 不保留带 token 的 URL；推送使用显式 cwd。
 - 引用 chinese-poetry 数据时保留 MIT 出处。
