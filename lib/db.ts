@@ -1,7 +1,10 @@
 // [LETTER-POETRY-PLAN-002#4] D1 数据访问层（仅服务端：server component / route handler 使用）
 // 数据模型：poems 表（id 主键），文本/元数据全部存 D1；列表与作者索引走 Assets 静态分片
+// [D1 配额治理] 计数/sitemap id 走构建期静态 JSON（0 D1 读），仅正文/作者详情查 D1
 import { env } from "cloudflare:workers";
 import type { PoemRow } from "./types";
+import meta from "./generated/collections-meta.json";
+import sitemapIds from "./generated/sitemap-ids.json";
 
 export type { PoemRow };
 
@@ -30,8 +33,7 @@ export async function getPoemRow(id: string): Promise<PoemRow | null> {
 }
 
 export async function getDailyPoemRow(): Promise<PoemRow | null> {
-  const cnt = await env.DB.prepare("SELECT COUNT(*) AS n FROM poems").first<{ n: number }>();
-  const total = cnt?.n ?? 0;
+  const total = meta.total; // 静态计数，0 D1 读 [D1 配额治理]
   if (!total) return null;
   const ymd = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" }).replace(/-/g, "");
   const offset = parseInt(ymd, 10) % total;
@@ -54,16 +56,14 @@ export async function getAuthorPoems(name: string, page = 1, size = 100): Promis
 
 // [LETTER-POETRY-PLAN-005] sitemap：诗数 + 分页 id 列表
 export async function getPoemCount(): Promise<number> {
-  const cnt = await env.DB.prepare("SELECT COUNT(*) AS n FROM poems").first<{ n: number }>();
-  return cnt?.n ?? 0;
+  return meta.total; // 静态计数，0 D1 读 [D1 配额治理]
 }
 
 export async function getPoemIdsPage(page: number, size = 10000): Promise<string[]> {
+  // 静态 id 分片（构建期生成），0 D1 读 [D1 配额治理]
+  const ids = sitemapIds as string[];
   const offset = Math.max(0, (page - 1) * size);
-  const rows = await env.DB.prepare("SELECT id FROM poems ORDER BY id LIMIT ? OFFSET ?")
-    .bind(size, offset)
-    .all<{ id: string }>();
-  return (rows.results ?? []).map((r) => r.id);
+  return ids.slice(offset, offset + size);
 }
 
 export async function getRandomPoemRow(): Promise<PoemRow | null> {

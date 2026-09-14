@@ -440,6 +440,16 @@ CREATE TABLE IF NOT EXISTS poems (
   const metaOut = { generatedAt: index.generatedAt, total: index.total, collections: collectionsMeta };
   fs.writeFileSync(path.join(OUT, "collections-meta.json"), JSON.stringify(metaOut), "utf8");
   console.log("collections-meta.json:", metaOut.total, "poems");
+
+  // [D1 配额治理] sitemap id 列表静态分片：进 bundle，sitemap route 不再查 D1（省 4.7 万行读/次）
+  fs.writeFileSync(path.join(OUT, "sitemap-ids.json"), JSON.stringify(seedRows.map((r) => r.id)), "utf8");
+  fs.mkdirSync(path.join(ROOT, "lib", "generated"), { recursive: true });
+  fs.writeFileSync(path.join(ROOT, "lib", "generated", "sitemap-ids.json"), JSON.stringify(seedRows.map((r) => r.id)), "utf8");
+  console.log("sitemap-ids.json:", seedRows.length, "ids");
+
+  // [D1 配额治理] author 索引单独成文件：CREATE INDEX 会写 ~4.7 万行，必须与重灌错开日期、在配额重置后执行
+  fs.writeFileSync(path.join(SEED_DIR, "0002_author_index.sql"), "CREATE INDEX IF NOT EXISTS idx_poems_author ON poems(author);\n", "utf8");
+  console.log("seed: 0002_author_index.sql (apply after quota reset, NOT same day as re-seed)");
 }
 console.log("rss.xml: generated");
 
