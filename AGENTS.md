@@ -25,6 +25,8 @@
 | `scripts/build-data.mjs` | 数据编译：全唐诗/选集/蒙学 + D1 seed SQL 分片 + 静态元数据 |
 | `seed/` | D1 schema（0001_schema.sql）+ seed_01..08.sql（构建产物） |
 | `tests/rendered-html.test.mjs`、`tests/d1-scan-guards.test.mjs` | 数据/产物冒烟测试 + D1 行读配额守卫（`npm test`） |
+| `lib/auth.ts`、`app/login/route.ts`、`app/api/auth/*` | **访问密钥门**（PLAN-015）：`lp_token` session 落 D1 `app_sessions`；未登录页面 302 / API 401 |
+| `tests/auth-gate-guards.test.mjs` | 访问密钥门静态守卫（鉴权早于缓存、cookie 属性、回跳白名单） |
 | `app/globals.css` | Letter 设计令牌 |
 | `.github/workflows/deploy.yml` | CI 部署（build + test + deploy；**不含数据导入**，数据手动导入以避免 D1 写配额风险） |
 
@@ -104,9 +106,18 @@ npm test             # 冒烟测试（node --test tests/*.mjs）
 - Cloudflare **默认不缓存 Worker 响应**，需用 **Cache API**（`caches.default`）显式缓存页面。
 - `worker/index.ts`：仅缓存**页面 HTML**（`/`、`/poem/*`、`/collections/*`、`/authors*`、`/mengxue*`、`/poems`、`/favorites`）且**非 RSC 请求**（Accept 不含 `text/x-component`），TTL 1 天；命中后不进 Worker、不查 D1（线上 `CF-Cache-Status: HIT` 已验证）。
 - API（`/api/*`）由 route handler 自控：AI 响应 `no-store`（含用户输入，不进缓存）；诗数据读接口带短边缘缓存——`/api/poem/daily` `s-maxage=600`、`/api/poem/random` `s-maxage=15`、`/api/poems` `s-maxage=60`。
+- **访问密钥门在页面缓存之前（PLAN-015）**：`worker/index.ts` 先鉴权再查 `caches.default`；若先查缓存，命中的整页 HTML 会绕过口令。
 - **D1 行读配额治理（PLAN-014）**：免费版 rows_read **5,000,000/天且为账号级**——一个库打满，同账号所有库一起被限流（2026-10-18 曾因此让小说 App 拿不到章节）。禁止对 `poems` 全表扫：`SELECT COUNT(*) FROM poems`（47,629 行）、`LIMIT 1 OFFSET n`（n 行）、`LIKE '%q%'`（≈47,629 行 ×2）。取单首一律「静态 id 池（`lib/generated/sitemap-ids.json`）+ `WHERE id = ?`」；计数走 `collections-meta.json`；sitemap 走静态分片；回归守卫见 `tests/d1-scan-guards.test.mjs`。
 - **不要用 KV 做页面缓存**：KV 免费写 1000/天，无法预热 4.7 万首。
 - 数据导入后旧缓存最长保留 1 天（TTL 自动过期）；如需立即生效可 purge。
+
+### 访问密钥门（PLAN-015）
+
+- 除公开路径（`/login`、`/api/auth/*`、`/robots.txt`、`/favicon.ico`、`/icon.svg`、`/apple-icon.png`、`/manifest.webmanifest`、`/_next/*`、`/assets/*`、`/og/*`）外，一律要求 `lp_token` session。
+- 密钥存 Worker Secret `ACCESS_KEY`（不写进仓库/文档）；轮换：`npx wrangler secret put ACCESS_KEY --config dist/server/wrangler.json --name letter-poetry`；立即踢人：`npx wrangler d1 execute letter-poetry-db --remote --command "DELETE FROM app_sessions"`。
+- session 表 `app_sessions`（`seed/0003_sessions.sql` + 运行时 `CREATE TABLE IF NOT EXISTS` 兜底），每次校验 1 行读；cookie `HttpOnly; Secure; SameSite=Lax; Path=/`，30 天。
+- 未登录：页面 302 `/login?next=…`（回跳只接受站内相对路径），`/api/*` 返回 401 JSON；登录页 `no-store` + `noindex`。**鉴权必须先于页面缓存**。
+- 口令全站生效后 `/sitemap*` 与详情页对爬虫不可读（SEO 会自然衰减）；要恢复公开+防刷请用 Cloudflare Access + Bypass，而不是拆掉这道门。
 
 ### 部署流程
 

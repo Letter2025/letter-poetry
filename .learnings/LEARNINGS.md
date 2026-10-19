@@ -78,3 +78,15 @@
 - 修法：随机/每日一诗改「构建期静态 id 池 + 主键直查」（每次约 1 行读），无筛选计数走静态 `collections-meta`，读接口加短 `s-maxage` 削峰；新增 `tests/d1-scan-guards.test.mjs` 守卫（禁止 OFFSET/无筛选 COUNT 全表扫、校验静态池与计数一致、路由必须带缓存头）。
 - 教训：①**D1 配额是账号级**，个人站也要按「会被爬」设计读路径；②免费额度下 `COUNT(*)`/`OFFSET`/`LIKE '%x%'` 是配额杀手，能静态化就静态化；③归因链条要写进文档（本次靠「941 次查询 × 平均 35,675 行 = 33.57M」与「470×2 查询 × 71,443 行」对账确认）。
 - Related Files: letter-poetry/lib/db.ts, letter-poetry/app/api/poem/random/route.ts, letter-poetry/app/api/poem/daily/route.ts, letter-poetry/app/api/poems/route.ts, letter-poetry/tests/d1-scan-guards.test.mjs, letter-poetry/docs/LETTER-POETRY-PLAN-014-D1行读配额治理-随机与每日改静态id.md
+
+## 2026-10-19 诗词站加访问密钥门（PLAN-015）
+
+- **门必须早于页面缓存**：`worker/index.ts` 在 `caches.default.match()` 之前鉴权；否则命中边缘缓存的整页 HTML 会直接绕过口令（本项目页面 TTL 1 天，等于裸奔一天）。
+- **fail closed**：`ACCESS_KEY` 未配置/为空时一律拒绝登录，绝不「无密钥即放行」；代价是上线顺序必须是 `wrangler secret put ACCESS_KEY` → `wrangler deploy`，反过来会把站点锁在门外。
+- **secret 不落仓库**：只存 Worker Secret（`wrangler secret put ACCESS_KEY --config dist/server/wrangler.json --name letter-poetry`）；文档只写名字与轮换步骤。
+- **session 落 D1 要有建表兜底**：`app_sessions` 既写进 `seed/0003_sessions.sql`，也在 `ensureSessionTable()` 里 `CREATE TABLE IF NOT EXISTS`，避免忘记执行 seed 就把全站锁死；每次校验 1 行读。
+- **cookie 与 token 边界**：`HttpOnly; Secure; SameSite=Lax; Path=/`；`readSessionToken` 只接受 16~128 字符，避免超长 cookie 变成 D1 查询负担。
+- **登录回跳必须白名单**：`sanitizeNext` 只放行单个 `/` 开头的站内路径（挡 `//evil.com`、`https://…`、反斜杠），前端再校验一次，别只信任服务端或只信任前端。
+- **页面与 API 分流**：页面未登录 302 `/login?next=…`，`/api/*` 未登录 401 JSON；否则前端会把登录页 HTML 当 JSON 解析，报出难以定位的 `Unexpected token '<'`。
+- **状态监控不会被 302 误判**：`letter-status/monitors.json` 的 poetry 项 `followRedirect: true`，`/` → `/login` → 200 仍判 operational；但监控从此只验证登录页可达。
+- **本机 curl 的 `000` 是链路超时不是逻辑失败**：验证登录接口时用 `--data-binary @file`（PowerShell 里内联 JSON 容易被引号吃掉）+ 重试 2~3 次，否则会把超时误判成「密钥不对」。
