@@ -1,6 +1,8 @@
 // [LETTER-POETRY-PLAN-002#4] D1 数据访问层（仅服务端：server component / route handler 使用）
 // 数据模型：poems 表（id 主键），文本/元数据全部存 D1；列表与作者索引走 Assets 静态分片
 // [D1 配额治理] 计数/sitemap id 走构建期静态 JSON（0 D1 读），仅正文/作者详情查 D1
+// [LETTER-POETRY-PLAN-014] 随机/每日一诗改「静态 id 池 + 主键直查」：每次约 1 行读
+// （此前 COUNT(*) 全表扫 + LIMIT 1 OFFSET 逐行扫，单次 3.5 万~7 万行读，曾击穿账号 5M 行读/天）
 import { env } from "cloudflare:workers";
 import type { PoemRow } from "./types";
 import meta from "./generated/collections-meta.json";
@@ -33,14 +35,16 @@ export async function getPoemRow(id: string): Promise<PoemRow | null> {
 }
 
 export async function getDailyPoemRow(): Promise<PoemRow | null> {
-  const total = meta.total; // 静态计数，0 D1 读 [D1 配额治理]
-  if (!total) return null;
+  // [LETTER-POETRY-PLAN-014] 静态 id 池按日期取位 → 主键直查（1 行读）；缺号时顺延几次
+  const ids = sitemapIds as string[];
+  if (ids.length === 0) return null;
   const ymd = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" }).replace(/-/g, "");
-  const offset = parseInt(ymd, 10) % total;
-  const row = await env.DB.prepare(`SELECT ${COLS} FROM poems LIMIT 1 OFFSET ?`)
-    .bind(offset)
-    .first<PoemRow>();
-  return row;
+  const offset = parseInt(ymd, 10) % ids.length;
+  for (let i = 0; i < 8; i++) {
+    const row = await getPoemRow(ids[(offset + i) % ids.length]);
+    if (row) return row;
+  }
+  return null;
 }
 
 // 按作者精确查询（author 列无索引，全表扫描；个人站读额度内可接受）
@@ -67,14 +71,15 @@ export async function getPoemIdsPage(page: number, size = 10000): Promise<string
 }
 
 export async function getRandomPoemRow(): Promise<PoemRow | null> {
-  const cnt = await env.DB.prepare("SELECT COUNT(*) AS n FROM poems").first<{ n: number }>();
-  const total = cnt?.n ?? 0;
-  if (!total) return null;
-  const offset = Math.floor(Math.random() * total);
-  const row = await env.DB.prepare(`SELECT ${COLS} FROM poems LIMIT 1 OFFSET ?`)
-    .bind(offset)
-    .first<PoemRow>();
-  return row;
+  // [LETTER-POETRY-PLAN-014] 静态 id 池随机 + 主键直查：期望 1 行读，最多 8 行
+  // （此前 COUNT(*) 全表扫 47,629 行 + OFFSET 平均 23,814 行 = 每次约 7.1 万行读）
+  const ids = sitemapIds as string[];
+  if (ids.length === 0) return null;
+  for (let i = 0; i < 8; i++) {
+    const row = await getPoemRow(ids[Math.floor(Math.random() * ids.length)]);
+    if (row) return row;
+  }
+  return null;
 }
 
 export type SearchOpts = {
@@ -130,9 +135,13 @@ export async function searchPoems(opts: SearchOpts): Promise<SearchResult> {
   }
   const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
-  const cnt = await env.DB.prepare(`SELECT COUNT(*) AS n FROM poems ${whereSql}`)
-    .bind(...params)
-    .first<{ n: number }>();
+  // [LETTER-POETRY-PLAN-014] 无筛选列表用静态计数（0 D1 读）；有筛选才让 D1 计数
+  const cnt =
+    where.length === 0
+      ? { n: meta.total }
+      : await env.DB.prepare(`SELECT COUNT(*) AS n FROM poems ${whereSql}`)
+          .bind(...params)
+          .first<{ n: number }>();
 
   // [LETTER-POETRY-PLAN-006] 相关性排序：标题前缀 > 标题包含 > 作者 > 正文
   const orderParams: unknown[] = q ? [`${q}%`, like, like] : [];

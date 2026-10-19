@@ -72,3 +72,9 @@
 - 修复：① 河灯 size 3.4（名人 5.0 金色）② UnrealBloomPass(strength 1.6, radius 0.85, threshold 0.12)（EffectComposer + RenderPass）③ 水流光带 2400 点均匀铺河（size 1.1）④ 河床 TubeGeometry 半透明 additive 河面（opacity 0.55）⑤ 光点纹理径向渐变分段（0.35/0.7 控制点）让光点更实 ⑥ 相机拉近至 ~180 距离 ⑦ raycast.params.Points.threshold = 3.2 修点击。
 - 验证方法：headless Edge（executablePath msedge.exe + --use-gl=angle --enable-unsafe-swiftshader）+ screenshot 转 canvas getImageData → 16x8 亮度网格，确认亮带呈蜿蜒河形；交互用真实 mouse down/up（center 稳定命中）+ 合成 PointerEvent（hover 节流）。亮度：bright 0.5%→1.5%、mid 0.8%→4.9%。
 - 教训：three 场景「有没有渲染」≠「用户看得见」；必须用亮度分布/构图验证，不能只看无报错。合成 PointerEvent 与真实 mouse 行为不同（OrbitControls 介入真实事件），交互验证用真实 mouse。
+## D1-QUOTA-2026-10-18（账号级行读配额被打满）
+- 事故链：`/api/poem/random` 单次 `COUNT(*)` 全表（47,629 行）+ `LIMIT 1 OFFSET n`（平均 23,814 行）≈ 71,443 行读；约 470 次/分钟的站外突发调用 ⇒ 一分钟 33.57M 行读 ⇒ **账号级** 5M 行读/天额度当刻击穿 ⇒ 同账号 `letter-novel-db` 一并被限流 ⇒ 小说 App 阅读页停在「正在获取章节…」（约 20 分钟后自愈）。
+- 取证方法（没有 Workers Logs 时）：Cloudflare GraphQL `d1AnalyticsAdaptiveGroups` 支持 `dimensions{date|datetimeHour|datetimeMinute}` + `sum{rowsRead readQueries writeQueries}`（**不支持 queryName**）；先按 `databaseId` 定位到库，再按**分钟**定位爆发（只到小时会误以为是整天慢跑），用 `workersInvocationsAdaptive`（scriptName）拿请求量与常态基线对照。
+- 修法：随机/每日一诗改「构建期静态 id 池 + 主键直查」（每次约 1 行读），无筛选计数走静态 `collections-meta`，读接口加短 `s-maxage` 削峰；新增 `tests/d1-scan-guards.test.mjs` 守卫（禁止 OFFSET/无筛选 COUNT 全表扫、校验静态池与计数一致、路由必须带缓存头）。
+- 教训：①**D1 配额是账号级**，个人站也要按「会被爬」设计读路径；②免费额度下 `COUNT(*)`/`OFFSET`/`LIKE '%x%'` 是配额杀手，能静态化就静态化；③归因链条要写进文档（本次靠「941 次查询 × 平均 35,675 行 = 33.57M」与「470×2 查询 × 71,443 行」对账确认）。
+- Related Files: letter-poetry/lib/db.ts, letter-poetry/app/api/poem/random/route.ts, letter-poetry/app/api/poem/daily/route.ts, letter-poetry/app/api/poems/route.ts, letter-poetry/tests/d1-scan-guards.test.mjs, letter-poetry/docs/LETTER-POETRY-PLAN-014-D1行读配额治理-随机与每日改静态id.md

@@ -14,7 +14,9 @@ export async function GET(req: Request) {
   const ids = idsRaw ? idsRaw.split(",").filter(Boolean).slice(0, 200) : undefined;
 
   const result = await searchPoems({ c, q, author, ids, page, size });
+  // [LETTER-POETRY-PLAN-014] 结果与 URL 一一对应且不含用户私有数据 ⇒ 允许 60s 边缘缓存，
+  // 避免爬虫/重复查询把 LIKE 全表扫放大成 D1 行读（免费额度 5M 行/天）
   return Response.json(result, {
-    headers: { "Cache-Control": "no-store" },
+    headers: { "Cache-Control": "public, max-age=0, s-maxage=60" },
   });
 }
